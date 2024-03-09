@@ -1,0 +1,21 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "18.19.0",
+    "sdksVersions": {
+      "@microsoft/microsoft-graph-client": "3.0.2",
+      "@microsoft/teams-js": "2.12.0"
+    },
+    "version": "1.18.2",
+    "libraryName": "react-registration",
+    "libraryId": "a2f6d489-ab3c-4f32-aa1f-724820ce79a5",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "ReactRegistration",
+    "solutionShortDescription": "ReactRegistration description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}

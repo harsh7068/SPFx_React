@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "react-reg-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/reactReg/ReactRegWebPart.js",
+          "manifest": "./src/webparts/reactReg/ReactRegWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "ReactRegWebPartStrings": "lib/webparts/reactReg/loc/{locale}.js"
+  }
+}
