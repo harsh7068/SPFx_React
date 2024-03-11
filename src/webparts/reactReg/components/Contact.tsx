@@ -14,6 +14,7 @@ import {
 import { IPersonaProps, Persona } from "@fluentui/react/lib/Persona";
 import { sp } from "@pnp/sp";
 import { IOfficeUiFabricPeoplePickerProps } from "./IOfficeUiFabricPeoplePickerProps";
+import ReactLoading from "react-loading";
 import { IItem } from "@pnp/sp/presets/all";
 import "@pnp/sp/webs";
 import "@pnp/sp/folders";
@@ -48,6 +49,7 @@ interface IContactProps {
 }
 
 const Contact: React.FC<IContactProps> = ({ editData }) => {
+  const [loading, setLoading] = React.useState(false);
   const [contactForm, setContactForm] = React.useState<IContactState>({
     id: 0,
     name: "",
@@ -344,6 +346,7 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
           baseUrl: "https://pv3l.sharepoint.com/sites/CRUDD",
         },
       });
+      setLoading(true);
 
       const contactList = sp.web.lists.getByTitle("ContactResponse");
 
@@ -503,6 +506,9 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
       }));
     } catch (error) {
       alert("Error submitting response!!!" + JSON.stringify(error));
+    } finally {
+      // Reset loading state after submission (whether success or error)
+      setLoading(false);
     }
   };
 
@@ -647,7 +653,25 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
           {contactForm.selectedFiles.map((file, index) => (
             <div key={index}>{file.name}</div>
           ))}
-          <PrimaryButton type="submit" text="Submit" />
+          <PrimaryButton type="submit" text="Submit" disabled={loading} />
+          {loading && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)', // Adjust opacity as needed
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999, // Ensure the loader is on top
+            }}
+          >
+            <ReactLoading type="spin" color="#0078d4" height={50} width={50} />
+          </div>
+        )}
         </Stack>
       </form>
     </div>

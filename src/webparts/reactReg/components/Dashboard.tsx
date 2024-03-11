@@ -195,7 +195,9 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
               <Response />
             ) : dashboardState.ishomeClicked ? (
               <>
-                <h1>Jai Shree Ram!!!</h1>
+                <h1>Jai Shree Ram!!!
+                  Jai Hanuman!!!
+                </h1>
               </>
             ) : (
               <>
