@@ -4,7 +4,7 @@ import { sp } from "@pnp/sp";
 import Contact from "./Contact";
 import { faDownload } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import * as XLSX from "xlsx";
+import * as XLSX from 'xlsx';
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import "@pnp/sp/webs";
@@ -15,9 +15,9 @@ interface IListItem {
   DistrictId: any;
   StateId: any;
   CountryId: any;
-  District: { Title: string } | null;
-  State: { Title: string } | null;
-  Country: { Title: string } | null;
+  District: any;
+  State: any;
+  Country: any;
   PeopleId: number;
   Email: string;
   Id: number;
@@ -28,25 +28,12 @@ interface IListItem {
   Attachments?: any[];
 }
 
-interface IExportedItem {
-  Id: number;
-  Title: string;
-  Email: string;
-  Message: string;
-  Interests: string;
-  PeopleId: number;
-  Country: string | null; // Change to string | null
-  State: string | null; // Change to string | null
-  District: string | null; // Change to string | null
-  Attachments: string[] | null; // Assuming Attachments is an array of file names
-}
 
 declare global {
   interface jsPDF {
-    autoTable(options: any): void; // Adjust the 'any' type if more specific
+    autoTable(options: any): void;  // Adjust the 'any' type if more specific 
   }
 }
-
 interface IResponseState {
   listData: IListItem[];
   dataEdited: boolean;
@@ -128,9 +115,6 @@ const Response: React.FC = () => {
           ...item,
           Attachments:
             matchingAttachments.length > 0 ? matchingAttachments : null,
-          Country: item.Country ? item.Country.Title : null,
-          State: item.State ? item.State.Title : null,
-          District: item.District ? item.District.Title : null,
         };
       });
       setResponseState((prevState) => ({
@@ -297,104 +281,63 @@ const Response: React.FC = () => {
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
-    const columnsForPDF = columns
-      .filter((c) => c.name !== "Actions")
-      .map((c) => c.name);
-
-    //   const columnStyles: Record<string, { cellWidth?: number }> = {};
-    // // Set specific widths for columns
-    // columnStyles["ID"] = { cellWidth: 10 }; // Adjust the width as needed
-    // columnStyles["Title"] = { cellWidth: 30 };
-    // columnStyles["Message"] = { cellWidth: 40 };
-    // columnStyles["Interests"] = { cellWidth: 20 };
-    // columnStyles["PeopleId"] = { cellWidth: 10 };
-    // columnStyles["Country"] = { cellWidth: 20 };
-    // columnStyles["State"] = { cellWidth: 20 };
-    // columnStyles["District"] = { cellWidth: 20 };
-    // columnStyles["Attachments"] = { cellWidth: 20 };
+    const columnsForPDF = columns.filter((c) => c.name !== "Actions");
 
     (doc as any).autoTable({
-      head: [columnsForPDF],
-      body: filteredData.map((row) => [
-        row.Id,
-        row.Title,
-        row.Email,
-        row.Message,
-        row.Interests,
-        row.PeopleId,
-        row.Country
-          ? typeof row.Country === "string"
-            ? row.Country
-            : row.Country.Title
-          : null,
-        row.State
-          ? typeof row.State === "string"
-            ? row.State
-            : row.State.Title
-          : null,
-        row.District
-          ? typeof row.District === "string"
-            ? row.District
-            : row.District.Title
-          : null,
-        row.Attachments
-          ? row.Attachments.map(
-              (attachment) => attachment.ServerRelativeUrl
-            ).join("\n")
-          : null,
-      ]),
-      orientation: "landscape",
-      columnStyles: {
-          ID: { cellWidth: 10 },
-          Title: { cellWidth: 30 },
-          Message: { cellWidth: 40 },
-          Interests: { cellWidth: 20 },
-          PeopleId: { cellWidth: 10 },
-          Country: { cellWidth: 20 },
-          State: { cellWidth: 20 },
-          District: { cellWidth: 20 },
-          Attachments: { cellWidth: 20 },
-      },
+      head: columnsForPDF.map((c) => [c.name]),  
+      body: filteredData.map((row) => columnsForPDF.map((c) => row[c.selector as unknown as keyof IListItem])),
     });
 
     doc.save("response_data.pdf");
   };
 
+  // const handleExportExcel = () => {
+  //   const filteredDataTableData = filteredData.map(row => {
+  //     // Modify the row as needed if certain fields require specific formatting or exclusion
+  //     const processedRow = { ...row }; 
+  //     delete processedRow.Attachments;
+  //     delete processedRow.Country;
+  //     delete processedRow.State;
+  //     delete processedRow.District; // Example of removing a column
+  //     return processedRow;
+  //   });
+  
+  //   const worksheet = XLSX.utils.json_to_sheet(filteredDataTableData);
+  //   const workbook = XLSX.utils.book_new();
+  //   XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+  //   XLSX.writeFile(workbook, "response_data.xlsx");
+  // };
+  
   const handleExportExcel = () => {
-    const filteredDataTableData: IExportedItem[] = filteredData.map((row) => {
-      return {
-        Id: row.Id,
-        Title: row.Title,
-        Email: row.Email,
-        Message: row.Message,
-        Interests: row.Interests,
-        PeopleId: row.PeopleId,
-        Country: row.Country
-          ? typeof row.Country === "string"
-            ? row.Country
-            : row.Country.Title
-          : null,
-        State: row.State
-          ? typeof row.State === "string"
-            ? row.State
-            : row.State.Title
-          : null,
-        District: row.District
-          ? typeof row.District === "string"
-            ? row.District
-            : row.District.Title
-          : null,
-        Attachments: row.Attachments
-          ? row.Attachments.map((attachment) => attachment.ServerRelativeUrl)
-          : null,
-      };
+    const columnsToExport: Array<keyof IListItem> = [
+      "Id",
+      "Title",
+      "Email",
+      "Message",
+      "Interests",
+      "PeopleId",
+      "CountryId",
+      "StateId",
+      "DistrictId"
+      // Add other column keys as needed
+    ];
+  
+    const filteredDataTableData = filteredData.map((row) => {
+      const processedRow: any = {};
+      columnsToExport.forEach((column) => {
+        processedRow[column] = row[column];
+      });
+      return processedRow;
     });
-
+  
     const worksheet = XLSX.utils.json_to_sheet(filteredDataTableData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
     XLSX.writeFile(workbook, "response_data.xlsx");
   };
+  
+  
+  
 
   return (
     <div>
@@ -403,12 +346,6 @@ const Response: React.FC = () => {
       ) : (
         <>
           <h1>List Data</h1>
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={handleSearch}
-          />
           <button onClick={handleExportPDF}>Export to PDF</button>
           <button onClick={handleExportExcel}>Export to Excel</button>
           <DataTable<IListItem>
@@ -417,7 +354,13 @@ const Response: React.FC = () => {
             pagination
             highlightOnHover
             striped
-            responsive
+            fixedHeader
+            actions={<button className="btn btn-sm btn-info">Export</button>}
+            subHeader
+            subHeaderComponent={
+              <input type="text" placeholder="Search Here" value={searchQuery}
+              onChange={handleSearch}></input>
+            }
           />
         </>
       )}

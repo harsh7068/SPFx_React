@@ -10,6 +10,7 @@ import ReactReg from "./ReactReg";
 import Contact from "./Contact";
 import About from "./About";
 import Profile from "./Profile";
+import BulkData from "./BulkData";
 import { Link } from "@fluentui/react/lib/Link";
 import { IStackTokens, Stack, Text } from "@fluentui/react";
 import { FontWeights } from "@fluentui/react/lib/Styling";
@@ -31,6 +32,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
     ishomeClicked: boolean;
     isProfileClicked: boolean;
     isResponseClicked: boolean;
+    isBulkDataClicked: boolean;
   }>({
     isLoggedOut: false,
     isContactClicked: false,
@@ -38,6 +40,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
     ishomeClicked: true,
     isProfileClicked: false,
     isResponseClicked: false,
+    isBulkDataClicked: false,
   });
 
   const user = {
@@ -48,7 +51,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
   const handleLogoutClick = () => {
     sessionStorage.clear();
     console.log(
-      "Session is cleared" + sessionStorage.getItem("LoggedInUserEmail"),
+      "Session is cleared" + sessionStorage.getItem("LoggedInUserEmail")
     );
     setdashboardState((prevState) => ({
       ...prevState,
@@ -69,6 +72,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
           ishomeClicked: true,
           isProfileClicked: false,
           isResponseClicked: false,
+          isBulkDataClicked: false,
         })),
     },
     {
@@ -83,6 +87,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
           ishomeClicked: false,
           isProfileClicked: false,
           isResponseClicked: false,
+          isBulkDataClicked: false,
         })),
     },
     {
@@ -97,6 +102,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
           ishomeClicked: false,
           isProfileClicked: false,
           isResponseClicked: false,
+          isBulkDataClicked: false,
         })),
     },
     {
@@ -111,6 +117,22 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
           ishomeClicked: false,
           isProfileClicked: false,
           isResponseClicked: true,
+          isBulkDataClicked: false,
+        })),
+    },
+    {
+      key: "bulkData",
+      text: "Bulk Data",
+      iconProps: { iconName: "Read" },
+      onClick: () =>
+        setdashboardState((prevState) => ({
+          ...prevState,
+          isContactClicked: false,
+          isAboutClicked: false,
+          ishomeClicked: false,
+          isProfileClicked: false,
+          isResponseClicked: false,
+          isBulkDataClicked: true,
         })),
     },
   ];
@@ -136,6 +158,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
                 isContactClicked: false,
                 isAboutClicked: false,
                 ishomeClicked: false,
+                isBulkDataClicked: false,
               }))
             }
           />
@@ -189,15 +212,15 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
               <Contact />
             ) : dashboardState.isAboutClicked ? (
               <About />
+            ) : dashboardState.isBulkDataClicked ? (
+              <BulkData />
             ) : dashboardState.isProfileClicked ? (
               <Profile />
             ) : dashboardState.isResponseClicked ? (
               <Response />
             ) : dashboardState.ishomeClicked ? (
               <>
-                <h1>Jai Shree Ram!!!
-                  Jai Hanuman!!!
-                </h1>
+                <h1>Jai Shree Ram!!! Jai Hanuman!!!</h1>
               </>
             ) : (
               <>
@@ -249,6 +272,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
                         isProfileClicked: false,
                         isLoggedOut: false,
                         isResponseClicked: false,
+                        isBulkDataClicked: false,
                       })
                     }
                   >
@@ -263,6 +287,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
                         isProfileClicked: false,
                         isLoggedOut: false,
                         isResponseClicked: false,
+                        isBulkDataClicked: false,
                       })
                     }
                   >
@@ -277,6 +302,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
                         isProfileClicked: false,
                         isLoggedOut: false,
                         isResponseClicked: false,
+                        isBulkDataClicked: false,
                       })
                     }
                   >
