@@ -1,15 +1,16 @@
 import * as React from "react";
-import DataTable, { TableColumn } from "react-data-table-component";
+import { DataGrid, GridPrintGetRowsToExportParams, GridRowId, GridToolbar, gridFilteredSortedRowIdsSelector, selectedGridRowsSelector } from "@mui/x-data-grid";
 import { sp } from "@pnp/sp";
-import Contact from "./Contact";
+//import Contact from "./Contact";
 import { faDownload } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import * as XLSX from 'xlsx';
-import jsPDF from "jspdf";
 import "jspdf-autotable";
 import "@pnp/sp/webs";
 import "@pnp/sp/folders";
 import "@pnp/sp/files";
+import { GridColDef } from "@mui/x-data-grid";
+import Contact from "./Contact";
+import ReactLoading from "react-loading";
 
 interface IListItem {
   DistrictId: any;
@@ -28,12 +29,6 @@ interface IListItem {
   Attachments?: any[];
 }
 
-
-declare global {
-  interface jsPDF {
-    autoTable(options: any): void;  // Adjust the 'any' type if more specific 
-  }
-}
 interface IResponseState {
   listData: IListItem[];
   dataEdited: boolean;
@@ -48,6 +43,7 @@ interface IResponseState {
     selectedState: string;
     selectedCountry: string;
   } | null;
+  deletingItemId: number | null;
 }
 
 const Response: React.FC = () => {
@@ -55,9 +51,8 @@ const Response: React.FC = () => {
     listData: [],
     dataEdited: false,
     editedData: null,
+    deletingItemId: null,
   });
-
-  const [searchQuery, setSearchQuery] = React.useState<string>("");
 
   React.useEffect(() => {
     loadListData();
@@ -90,7 +85,10 @@ const Response: React.FC = () => {
         )
         .get();
 
-      console.log("ITEMSSSSS", listItems);
+      setResponseState((prevState) => ({
+        ...prevState,
+        deletingItemId: null,
+      }));
 
       const attachmentLibraryUrl = "/sites/CRUDD/Contact";
       const attachmentsID = await sp.web
@@ -99,16 +97,9 @@ const Response: React.FC = () => {
         .select("Title", "ServerRelativeUrl", "ListItemAllFields/ListDataID")
         .get();
 
-      console.log("Attavjn ID", attachmentsID);
-
       const processedData = listItems.map((item) => {
         const matchingAttachments = attachmentsID.filter((attachment) => {
-          const mifd = attachment.ListItemAllFields.ListDataID === item.Id;
-          console.log("JO mila", attachment.ListItemAllFields.ListDataID);
-
-          console.log("RBERF", mifd);
-
-          return mifd;
+          return attachment.ListItemAllFields.ListDataID === item.Id;
         });
 
         return {
@@ -131,16 +122,78 @@ const Response: React.FC = () => {
     }
   };
 
-  const editColumn: TableColumn<IListItem> = {
-    name: "Actions",
+  const handleDownload = (attachment: any) => {
+    const downloadLink = document.createElement("a");
+    downloadLink.href = `https://pv3l.sharepoint.com${attachment.ServerRelativeUrl}`;
+    downloadLink.download = fileName || "download";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    console.log("Download:", attachment.Title);
+  };
 
-    cell: (row) => (
-      <>
-        <button onClick={() => handleEdit(row)}>Edit</button>
-        <button onClick={() => handleDelete(row.Id)}>Delete</button>
-      </>
-    ),
+  const getSelectedRowsToExport = ({
+    apiRef,
+  }: GridPrintGetRowsToExportParams): GridRowId[] => {
+    const selectedRowIds = selectedGridRowsSelector(apiRef);
+    if (selectedRowIds.size > 0) {
+      return Array.from(selectedRowIds.keys());
+    }
+  
+    return gridFilteredSortedRowIdsSelector(apiRef);
+  };
+  
+
+  let fileName = "";
+
+  const editColumn: GridColDef = {
+    field: "Actions",
+    headerName: "Actions",
+    width: 150,
+    renderCell: (params) => {
+      const rowData: IListItem = params.row as IListItem; // Cast params.row to IListItem type
+      return (
+        <div>
+          <button onClick={() => handleEdit(rowData)}>Edit</button>{" "}
+          {/* Pass rowData to handleEdit */}
+          <button onClick={() => handleDelete(rowData.Id)}>Delete</button>{" "}
+          {/* Access Id property from rowData */}
+        </div>
+      );
+    },
     sortable: false,
+  };
+
+  const handleDelete = async (itemId: number) => {
+    try {
+      setResponseState((prevState) => ({
+        ...prevState,
+        deletingItemId: itemId,
+      }));
+
+      const attachments =
+        responseState.listData.find((item) => item.Id === itemId)
+          ?.Attachments || [];
+
+      // Delete attachments from library
+      if (attachments.length > 0) {
+        for (const attachment of attachments) {
+          // Construct the server-relative URL for the attachment
+          const attachmentUrl = attachment.ServerRelativeUrl;
+
+          // Delete the attachment from the library
+          await sp.web.getFileByServerRelativeUrl(attachmentUrl).delete();
+        }
+      }
+      await sp.web.lists
+        .getByTitle("ContactResponse")
+        .items.getById(itemId)
+        .delete();
+
+      loadListData();
+    } catch (error) {
+      console.error("Error deleting item:", error);
+    }
   };
 
   const handleEdit = (row: IListItem) => {
@@ -163,206 +216,115 @@ const Response: React.FC = () => {
     }));
   };
 
-  const handleDelete = async (itemId: number) => {
-    try {
-      await sp.web.lists
-        .getByTitle("ContactResponse")
-        .items.getById(itemId)
-        .delete();
-
-      loadListData();
-    } catch (error) {
-      console.error("Error deleting item:", error);
-    }
+  const attachmentColumn: GridColDef = {
+    field: "Attachments",
+    headerName: "Attachments",
+    minWidth: 500,
+    renderCell: (params) => {
+      const rowData: IListItem = params.row as IListItem; // Cast params.row to IListItem type
+      const attachments = rowData.Attachments || [];
+      if (attachments && attachments.length > 0) {
+        return (
+          <div>
+            {attachments.map((attachment, index) => {
+              fileName = attachment.ServerRelativeUrl.split("_").pop();
+              return (
+                <React.Fragment key={index}>
+                  <a
+                    href={attachment.ServerRelativeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {fileName}
+                  </a>
+                  <span>&nbsp;|&nbsp;</span>
+                  <span
+                    onClick={() => handleDownload(attachment)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <FontAwesomeIcon icon={faDownload} title="Download" />
+                  </span>{" "}
+                  {index < attachments.length - 1 && <span>&nbsp;|&nbsp;</span>}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        );
+      } else {
+        return <div>No attachments</div>;
+      }
+    },
+    sortable: false,
   };
 
-  const handleDownload = (attachment: any) => {
-    const downloadLink = document.createElement("a");
-    downloadLink.href = `https://pv3l.sharepoint.com${attachment.ServerRelativeUrl}`;
-    downloadLink.download = fileName || "download";
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-  };
-
-  let fileName = "";
-
-  const handleView = (attachment: any) => {
-    fileName =
-      attachment.Title || attachment.ServerRelativeUrl.split("_").pop();
-    console.log("FILEEE", fileName);
-
-    try {
-      window.open(
-        `https://pv3l.sharepoint.com${attachment.ServerRelativeUrl}`,
-        "_blank"
-      );
-    } catch {
-      console.log("Can not open file!!!");
-    }
-  };
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
-  // Filter the data based on the search query
-  const filteredData = responseState.listData.filter(
-    (item) =>
-      (item.Title &&
-        item.Title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (item.Email &&
-        item.Email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const attachmentColumn: TableColumn<IListItem> = {
-    name: "Attachments",
-    cell: (row) => (
-      <div>
-        {row.Attachments
-          ? row.Attachments.map(
-              (attachment) => (
-                (fileName = attachment.ServerRelativeUrl.split("_").pop()),
-                (
-                  <>
-                    <span
-                      onClick={() => handleView(attachment)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      {fileName}
-                    </span>
-                    <span>&nbsp;|&nbsp;</span>
-                    <span
-                      onClick={() => handleDownload(attachment)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <FontAwesomeIcon icon={faDownload} title="Download" />
-                    </span>{" "}
-                    <br />
-                  </>
-                )
-              )
-            )
-          : "No attachments"}
-      </div>
-    ),
-    sortable: true,
-  };
-
-  const columns: TableColumn<IListItem>[] = [
-    { name: "ID", selector: (row) => row.Id, sortable: true },
-    { name: "Title", selector: (row) => row.Title, sortable: true },
-    { name: "Email", selector: (row) => row.Email, sortable: true },
-    { name: "Message", selector: (row) => row.Message, sortable: true },
-    { name: "Interests", selector: (row) => row.Interests, sortable: true },
+  const columns: GridColDef[] = [
+    { field: "Id", headerName: "ID", width: 70 },
+    { field: "Title", headerName: "Title", width: 150 },
+    { field: "Email", headerName: "Email", width: 150 },
+    { field: "Message", headerName: "Message", width: 200 },
+    { field: "Interests", headerName: "Interests", width: 150 },
+    { field: "People", headerName: "People", width: 150 },
     {
-      name: "Selected People",
-      selector: (row) => row.PeopleId,
-      sortable: true,
+      field: "Country",
+      headerName: "Country",
+      width: 150,
+      valueGetter: (params) =>
+        params.row.Country ? params.row.Country.Title : "N/A",
     },
     {
-      name: "Country",
-      selector: (row) => (row.Country ? row.Country.Title : "N/A"),
-      sortable: true,
+      field: "State",
+      headerName: "State",
+      width: 150,
+      valueGetter: (params) =>
+        params.row.State ? params.row.State.Title : "N/A",
     },
     {
-      name: "State",
-      selector: (row) => (row.State ? row.State.Title : "N/A"),
-      sortable: true,
-    },
-    {
-      name: "District",
-      selector: (row) => (row.District ? row.District.Title : "N/A"),
-      sortable: true,
+      field: "District",
+      headerName: "District",
+      width: 150,
+      valueGetter: (params) =>
+        params.row.District ? params.row.District.Title : "N/A",
     },
     attachmentColumn,
     editColumn,
   ];
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    const columnsForPDF = columns.filter((c) => c.name !== "Actions");
-
-    (doc as any).autoTable({
-      head: columnsForPDF.map((c) => [c.name]),  
-      body: filteredData.map((row) => columnsForPDF.map((c) => row[c.selector as unknown as keyof IListItem])),
-    });
-
-    doc.save("response_data.pdf");
-  };
-
-  // const handleExportExcel = () => {
-  //   const filteredDataTableData = filteredData.map(row => {
-  //     // Modify the row as needed if certain fields require specific formatting or exclusion
-  //     const processedRow = { ...row }; 
-  //     delete processedRow.Attachments;
-  //     delete processedRow.Country;
-  //     delete processedRow.State;
-  //     delete processedRow.District; // Example of removing a column
-  //     return processedRow;
-  //   });
-  
-  //   const worksheet = XLSX.utils.json_to_sheet(filteredDataTableData);
-  //   const workbook = XLSX.utils.book_new();
-  //   XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-  //   XLSX.writeFile(workbook, "response_data.xlsx");
-  // };
-  
-  const handleExportExcel = () => {
-    const columnsToExport: Array<keyof IListItem> = [
-      "Id",
-      "Title",
-      "Email",
-      "Message",
-      "Interests",
-      "PeopleId",
-      "CountryId",
-      "StateId",
-      "DistrictId"
-      // Add other column keys as needed
-    ];
-  
-    const filteredDataTableData = filteredData.map((row) => {
-      const processedRow: any = {};
-      columnsToExport.forEach((column) => {
-        processedRow[column] = row[column];
-      });
-      return processedRow;
-    });
-  
-    const worksheet = XLSX.utils.json_to_sheet(filteredDataTableData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-    XLSX.writeFile(workbook, "response_data.xlsx");
-  };
-  
-  
-  
-
   return (
-    <div>
+    <div style={{ height: 400, width: "100%" }}>
       {responseState.dataEdited ? (
         <Contact editData={responseState.editedData || undefined} />
       ) : (
-        <>
-          <h1>List Data</h1>
-          <button onClick={handleExportPDF}>Export to PDF</button>
-          <button onClick={handleExportExcel}>Export to Excel</button>
-          <DataTable<IListItem>
-            columns={columns}
-            data={filteredData}
-            pagination
-            highlightOnHover
-            striped
-            fixedHeader
-            actions={<button className="btn btn-sm btn-info">Export</button>}
-            subHeader
-            subHeaderComponent={
-              <input type="text" placeholder="Search Here" value={searchQuery}
-              onChange={handleSearch}></input>
-            }
-          />
-        </>
+        <DataGrid
+          rows={responseState.listData}
+          autoHeight
+          columns={columns}
+          getRowId={(row) => row.Id}
+          //checkboxSelection
+          slots={{
+            toolbar: GridToolbar,
+          }}
+          slotProps={{
+            toolbar: { printOptions: { getRowsToExport: getSelectedRowsToExport } },
+          }}
+        />
+      )}
+      {responseState.deletingItemId && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+          }}
+        >
+          <ReactLoading type={"spin"} color={"#000"} height={50} width={50} />
+        </div>
       )}
     </div>
   );

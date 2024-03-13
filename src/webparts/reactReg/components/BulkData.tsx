@@ -24,6 +24,11 @@ interface IListItem {
 const BulkData: React.FC = () => {
   const [data, setData] = React.useState<IListItem[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
+  const [loadingData, setLoadingData] = React.useState<boolean>(false);
+  const [loadingLabel, setLoadingLabel] = React.useState<string>(
+    "Still Loading Some Data..."
+  );
+  const [searchQuery, setSearchQuery] = React.useState<string>("");
 
   React.useEffect(() => {
     loadInitialData();
@@ -39,7 +44,7 @@ const BulkData: React.FC = () => {
 
       const initialBatch = await sp.web.lists
         .getByTitle("BulkData")
-        .items.top(1000)
+        .items.top(5000)
         .get();
       setData(initialBatch);
       setLoading(false);
@@ -52,8 +57,9 @@ const BulkData: React.FC = () => {
 
   const loadRemainingData = async (skip: number) => {
     try {
-        console.time("Data loading time");
-      const batchSize = 5000; // Adjust as needed
+      setLoadingData(true);
+      console.time("Data loading time");
+      const batchSize = 5000;
       const batch = await sp.web.lists
         .getByTitle("BulkData")
         .items.top(batchSize)
@@ -62,11 +68,12 @@ const BulkData: React.FC = () => {
 
       if (batch.length > 0) {
         setData((prevData) => [...prevData, ...batch]);
-        loadRemainingData(skip + batchSize); // Recursive call for the next batch
+        loadRemainingData(skip + batchSize);
       } else {
-        // All data has been fetched
         console.log("All data loaded");
         console.timeEnd("Data loading time");
+        setLoadingLabel("All Data Loaded");
+        setLoadingData(false);
       }
     } catch (error) {
       console.log("Error fetching remaining data", error);
@@ -112,6 +119,18 @@ const BulkData: React.FC = () => {
     },
   ];
 
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const filteredData = React.useMemo(() => {
+    return data.filter(
+      (item) =>
+        item.Brand &&
+        item.Brand.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [data, searchQuery]);
+
   return (
     <div>
       {loading ? (
@@ -129,19 +148,84 @@ const BulkData: React.FC = () => {
             //zIndex: 9999,
           }}
         >
-          <ReactLoading type="spinningBubbles" color="green" height={40} width={40} />
+          <ReactLoading
+            type="spinningBubbles"
+            color="green"
+            height={40}
+            width={40}
+          />
         </div>
+      ) : loadingData ? (
+        <>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              height:"20px"
+            }}
+          >
+            <ReactLoading type="spin" color="black" height={20} width={20} />
+            <p style={{ color: "black", marginLeft: "5px" }}>{loadingLabel}</p>
+          </div>
+          <DataTable<IListItem>
+            title="Bulk Data"
+            columns={columns}
+            data={filteredData}
+            pagination
+            highlightOnHover
+            striped
+            responsive
+            fixedHeader
+            subHeader
+            subHeaderComponent={
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={handleSearch}
+              />
+            }
+          />
+        </>
       ) : (
-        <DataTable<IListItem>
-          title="Bulk Data"
-          columns={columns}
-          data={data}
-          pagination
-          highlightOnHover
-          striped
-          responsive
-          fixedHeader
-        />
+        <>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              height:"20px"
+            }}
+          >
+            <p style={{ color: "black", marginLeft: "5px" }}>
+              ✅{loadingLabel}
+            </p>
+          </div>
+          <DataTable<IListItem>
+            title="Bulk Data"
+            columns={columns}
+            data={filteredData}
+            pagination
+            paginationPerPage={10} // Adjust as needed
+            paginationRowsPerPageOptions={[10, 20, 30]}
+            highlightOnHover
+            striped
+            responsive
+            fixedHeader
+            subHeader
+            subHeaderComponent={
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={handleSearch}
+              />
+            }
+          />
+        </>
       )}
     </div>
   );

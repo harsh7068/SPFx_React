@@ -19,6 +19,8 @@ import { IItem } from "@pnp/sp/presets/all";
 import "@pnp/sp/webs";
 import "@pnp/sp/folders";
 import "@pnp/sp/files";
+import "@pnp/sp/site-groups";
+import "@pnp/sp/site-users";
 
 interface IContactState {
   id: number;

@@ -7,6 +7,7 @@ import "@pnp/sp/webs";
 import "@pnp/sp/lists";
 import "@pnp/sp/items";
 import Dashboard from "./Dashboard";
+import ReactLoading from "react-loading";
 
 export default class ReactReg extends React.Component<
   IReactRegProps,
@@ -19,6 +20,7 @@ export default class ReactReg extends React.Component<
     regPassword: string;
     regConfirmPassword: string;
     isLoggedIn: boolean;
+    isLoading: boolean;
   }
 > {
   constructor(props: IReactRegProps) {
@@ -33,6 +35,7 @@ export default class ReactReg extends React.Component<
       regPassword: "",
       regConfirmPassword: "",
       isLoggedIn: false,
+      isLoading: false,
     };
   }
 
@@ -61,6 +64,7 @@ export default class ReactReg extends React.Component<
         alert("Please enter both username and password!!!");
         return;
       }
+      this.setState({ isLoading: true });
       const isValidUser = await this.validateLogin(loginEmail, loginPassword);
       if (isValidUser) {
         sessionStorage.setItem("LoggedInUserEmail", loginEmail);
@@ -71,6 +75,9 @@ export default class ReactReg extends React.Component<
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      // Set loading state to false after login attempt is completed
+      this.setState({ isLoading: false });
     }
   };
 
@@ -153,6 +160,24 @@ export default class ReactReg extends React.Component<
       <section
         className={`${styles.reactReg} ${hasTeamsContext ? styles.teams : ""}`}
       >
+        {this.state.isLoading && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              backgroundColor: "rgba(0, 0, 0, 0.5)", // Adjust opacity as needed
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 9999, // Ensure the loader is on top
+            }}
+          >
+            <ReactLoading type="spin" color="black" height={50} width={50} />
+          </div>
+        )}
         {this.state.isLoggedIn ? (
           <Dashboard
             LoggedInUserEmail={{

@@ -1,9 +1,5 @@
 import * as React from "react";
 import { Persona } from "@fluentui/react/lib/Persona";
-//import { sp } from "@pnp/sp";
-import "@pnp/sp/webs";
-import "@pnp/sp/site-groups";
-import "@pnp/sp/site-users";
 import { PersonaSize, CommandBar, DefaultButton } from "@fluentui/react";
 import "./Footer.css";
 import ReactReg from "./ReactReg";
@@ -15,6 +11,7 @@ import { Link } from "@fluentui/react/lib/Link";
 import { IStackTokens, Stack, Text } from "@fluentui/react";
 import { FontWeights } from "@fluentui/react/lib/Styling";
 import Response from "./Responses";
+//import { BarChart } from "@mui/x-charts/BarChart";
 
 interface IDashboardProps {
   LoggedInUserEmail: {
@@ -219,8 +216,19 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
             ) : dashboardState.isResponseClicked ? (
               <Response />
             ) : dashboardState.ishomeClicked ? (
-              <>
-                <h1>Jai Shree Ram!!! Jai Hanuman!!!</h1>
+              <> 
+              <h1>Home Page</h1>
+                {/* <BarChart
+                  series={[
+                    { data: [3, 4, 1, 6, 5], stack: "A", label: "Series A1" },
+                    { data: [4, 3, 1, 5, 8], stack: "A", label: "Series A2" },
+                    { data: [4, 2, 5, 4, 1], stack: "B", label: "Series B1" },
+                    { data: [2, 8, 1, 3, 1], stack: "B", label: "Series B2" },
+                    { data: [10, 6, 5, 8, 9], label: "Series C1" },
+                  ]}
+                  width={600}
+                  height={350}
+                /> */}
               </>
             ) : (
               <>
