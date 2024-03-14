@@ -1,5 +1,12 @@
 import * as React from "react";
-import { DataGrid, GridPrintGetRowsToExportParams, GridRowId, GridToolbar, gridFilteredSortedRowIdsSelector, selectedGridRowsSelector } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridPrintGetRowsToExportParams,
+  GridRowId,
+  GridToolbar,
+  gridFilteredSortedRowIdsSelector,
+  selectedGridRowsSelector,
+} from "@mui/x-data-grid";
 import { sp } from "@pnp/sp";
 //import Contact from "./Contact";
 import { faDownload } from "@fortawesome/free-solid-svg-icons";
@@ -44,6 +51,7 @@ interface IResponseState {
     selectedCountry: string;
   } | null;
   deletingItemId: number | null;
+  loading: boolean;
 }
 
 const Response: React.FC = () => {
@@ -52,6 +60,7 @@ const Response: React.FC = () => {
     dataEdited: false,
     editedData: null,
     deletingItemId: null,
+    loading: false,
   });
 
   React.useEffect(() => {
@@ -60,6 +69,11 @@ const Response: React.FC = () => {
 
   const loadListData = async () => {
     try {
+      setResponseState((prevState) => ({
+        ...prevState,
+        loading: true, // Set loading state to true
+      }));
+
       sp.setup({
         sp: {
           baseUrl: "https://pv3l.sharepoint.com/sites/CRUDD",
@@ -88,6 +102,7 @@ const Response: React.FC = () => {
       setResponseState((prevState) => ({
         ...prevState,
         deletingItemId: null,
+        loading: false,
       }));
 
       const attachmentLibraryUrl = "/sites/CRUDD/Contact";
@@ -139,10 +154,9 @@ const Response: React.FC = () => {
     if (selectedRowIds.size > 0) {
       return Array.from(selectedRowIds.keys());
     }
-  
+
     return gridFilteredSortedRowIdsSelector(apiRef);
   };
-  
 
   let fileName = "";
 
@@ -293,6 +307,40 @@ const Response: React.FC = () => {
     <div style={{ height: 400, width: "100%" }}>
       {responseState.dataEdited ? (
         <Contact editData={responseState.editedData || undefined} />
+      ) : responseState.loading ? (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 9999,
+            }}
+          >
+            <ReactLoading type={"spin"} color={"#000"} height={50} width={50} />
+          </div>
+          <DataGrid
+            rows={responseState.listData}
+            autoHeight
+            columns={columns}
+            getRowId={(row) => row.Id}
+            //checkboxSelection
+            slots={{
+              toolbar: GridToolbar,
+            }}
+            slotProps={{
+              toolbar: {
+                printOptions: { getRowsToExport: getSelectedRowsToExport },
+              },
+            }}
+          />
+        </>
       ) : (
         <DataGrid
           rows={responseState.listData}
@@ -304,7 +352,9 @@ const Response: React.FC = () => {
             toolbar: GridToolbar,
           }}
           slotProps={{
-            toolbar: { printOptions: { getRowsToExport: getSelectedRowsToExport } },
+            toolbar: {
+              printOptions: { getRowsToExport: getSelectedRowsToExport },
+            },
           }}
         />
       )}

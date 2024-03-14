@@ -148,12 +148,7 @@ const BulkData: React.FC = () => {
             //zIndex: 9999,
           }}
         >
-          <ReactLoading
-            type="spinningBubbles"
-            color="green"
-            height={40}
-            width={40}
-          />
+          <ReactLoading type={"spin"} color={"#000"} height={50} width={50} />
         </div>
       ) : loadingData ? (
         <>
@@ -163,7 +158,7 @@ const BulkData: React.FC = () => {
               flexDirection: "row",
               justifyContent: "flex-end",
               alignItems: "center",
-              height:"20px"
+              height: "20px",
             }}
           >
             <ReactLoading type="spin" color="black" height={20} width={20} />
@@ -191,19 +186,6 @@ const BulkData: React.FC = () => {
         </>
       ) : (
         <>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              justifyContent: "flex-end",
-              alignItems: "center",
-              height:"20px"
-            }}
-          >
-            <p style={{ color: "black", marginLeft: "5px" }}>
-              ✅{loadingLabel}
-            </p>
-          </div>
           <DataTable<IListItem>
             title="Bulk Data"
             columns={columns}
