@@ -1,10 +1,7 @@
 import * as React from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
-import { sp } from "@pnp/sp";
-import "@pnp/sp/webs";
-import "@pnp/sp/folders";
-import "@pnp/sp/files";
 import ReactLoading from "react-loading";
+import { getBulkData, getRestBulkData } from "./CommonRepository";
 
 interface IListItem {
   Listing_x0020_Status: string;
@@ -36,19 +33,10 @@ const BulkData: React.FC = () => {
 
   const loadInitialData = async () => {
     try {
-      sp.setup({
-        sp: {
-          baseUrl: "https://pv3l.sharepoint.com/sites/CRUDD",
-        },
-      });
-
-      const initialBatch = await sp.web.lists
-        .getByTitle("BulkData")
-        .items.top(5000)
-        .get();
+      const initialBatch = await getBulkData();
       setData(initialBatch);
       setLoading(false);
-      loadRemainingData(1000);
+      loadRemainingData(5000);
     } catch (error) {
       console.log("Error", error);
       setLoading(false);
@@ -60,11 +48,7 @@ const BulkData: React.FC = () => {
       setLoadingData(true);
       console.time("Data loading time");
       const batchSize = 5000;
-      const batch = await sp.web.lists
-        .getByTitle("BulkData")
-        .items.top(batchSize)
-        .skip(skip)
-        .get();
+      const batch = await getRestBulkData(batchSize, skip);
 
       if (batch.length > 0) {
         setData((prevData) => [...prevData, ...batch]);

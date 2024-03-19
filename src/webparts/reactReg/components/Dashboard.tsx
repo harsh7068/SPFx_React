@@ -11,6 +11,7 @@ import { Link } from "@fluentui/react/lib/Link";
 import { IStackTokens, Stack, Text } from "@fluentui/react";
 import { FontWeights } from "@fluentui/react/lib/Styling";
 import Response from "./Responses";
+import { handleLogOut } from "./CommonRepository";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -37,7 +38,7 @@ import {
   Scatter,
 } from "react-chartjs-2";
 import { faker } from "@faker-js/faker";
-import ReactLoading from "react-loading";
+//import ReactLoading from "react-loading";
 //import ReactLoading from "react-loading";
 //import { BarChart } from "@mui/x-charts/BarChart";
 
@@ -483,10 +484,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
   };
 
   const handleLogoutClick = () => {
-    sessionStorage.clear();
-    console.log(
-      "Session is cleared" + sessionStorage.getItem("LoggedInUserEmail")
-    );
+    handleLogOut();
     setdashboardState((prevState) => ({
       ...prevState,
       isLoggedOut: true,
@@ -612,23 +610,6 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
     <div>
       {dashboardState.isLoggedOut ? (
         <>
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 9999,
-            }}
-          >
-            <ReactLoading type={"spin"} color={"#000"} height={50} width={50} />
-          </div>
-          {dashboardState.isLoggedOut = false}
           <ReactReg hasTeamsContext={false} />
           
         </>

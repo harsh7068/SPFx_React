@@ -2,255 +2,111 @@ import * as React from "react";
 import styles from "./ReactReg.module.scss";
 import type { IReactRegProps } from "./IReactRegProps";
 import { PrimaryButton, TextField, Stack } from "@fluentui/react";
-import { sp } from "@pnp/sp";
-import "@pnp/sp/webs";
-import "@pnp/sp/lists";
-import "@pnp/sp/items";
+import { useState } from "react";
 import Dashboard from "./Dashboard";
 import ReactLoading from "react-loading";
+import { handleLogin, handleRegister, hideRibbon } from "./CommonRepository";
 
-export default class ReactReg extends React.Component<
-  IReactRegProps,
-  {
-    loginEmail: string;
-    loginPassword: string;
-    regFullName: string;
-    regEmail: string;
-    regMobile: string;
-    regPassword: string;
-    regConfirmPassword: string;
-    isLoggedIn: boolean;
-    isLoading: boolean;
-  }
-> {
-  constructor(props: IReactRegProps) {
-    super(props);
+export default function ReactReg({ hasTeamsContext }: IReactRegProps) {
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [regFullName, setRegFullName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regMobile, setRegMobile] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirmPassword, setRegConfirmPassword] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-    this.state = {
-      loginEmail: "",
-      loginPassword: "",
-      regFullName: "",
-      regEmail: "",
-      regMobile: "",
-      regPassword: "",
-      regConfirmPassword: "",
-      isLoggedIn: false,
-      isLoading: false,
-    };
-  }
-
-  componentDidMount(): void {
+  React.useEffect(() => {
     console.log("Ribbon hide hona");
+    hideRibbon();
+  }, []);
 
-    this.hideRibbon();
-  }
-
-  hideRibbon() {
-    const ribbon = document.getElementById("SuiteNavWrapper");
-    const ribbon1 = document.getElementById("workbenchCommandBar");
-    const fullPage = document.getElementById("workbenchPageContent");
-    if (ribbon && ribbon1 && fullPage) {
-      ribbon.style.display = "none";
-      ribbon1.style.display = "none";
-      fullPage.style.maxWidth = "none";
-    }
-  }
-
-  handleLogin = async () => {
-    const { loginEmail, loginPassword } = this.state;
-    console.log(loginPassword, loginEmail);
-    try {
-      if (!loginPassword || !loginEmail) {
-        alert("Please enter both username and password!!!");
-        return;
-      }
-      this.setState({ isLoading: true });
-      const isValidUser = await this.validateLogin(loginEmail, loginPassword);
-      if (isValidUser) {
-        sessionStorage.setItem("LoggedInUserEmail", loginEmail);
-        var email = sessionStorage.getItem("LoggedInUserEmail");
-        console.log("Session wala" + email);
-
-        this.setState({ isLoggedIn: true });
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      // Set loading state to false after login attempt is completed
-      this.setState({ isLoading: false });
-    }
+  const handleLoginClick = async () => {
+    await handleLogin(loginEmail, loginPassword, setIsLoading, setIsLoggedIn);
   };
 
-  validateLogin = async (email: string, password: string): Promise<boolean> => {
-    sp.setup({
-      sp: {
-        baseUrl: "https://pv3l.sharepoint.com/sites/CRUDD",
-      },
-    });
-    try {
-      const items = await sp.web.lists.getByTitle("UserMaster").items.get();
-
-      console.log(items);
-      console.log(email, password);
-      var found = false;
-      for (var i = 0; i < items.length; i++) {
-        const item = items[i];
-        const userEmail = item.Email;
-        const userPassword = item.Password;
-        if (userEmail === email && userPassword === password) {
-          found = true;
-        }
-      }
-      return found
-        ? true
-        : (alert("You have entered wrong email id or password!!!"), false);
-    } catch (err) {
-      console.error(err);
-      return false;
-    }
+  const handleRegisterClick = async () => {
+    const registrationData = [regFullName, regEmail, regMobile, regPassword, regConfirmPassword];
+    const listName = "UserMaster";
+    await handleRegister(registrationData, listName);
   };
-
-  handleRegister = async () => {
-    sp.setup({
-      sp: {
-        baseUrl: "https://pv3l.sharepoint.com/sites/CRUDD",
-      },
-    });
-    const {
-      regFullName,
-      regEmail,
-      regMobile,
-      regPassword,
-      regConfirmPassword,
-    } = this.state;
-    console.log(regFullName, regEmail, regPassword, regConfirmPassword);
-    if (regPassword !== regConfirmPassword) {
-      console.error("Passwords do not match");
-      return;
-    }
-
-    try {
-      const userList = sp.web.lists.getByTitle("UserMaster");
-
-      const userItem = await userList.items.add({
-        Title: regFullName,
-        Email: regEmail,
-        Password: regPassword,
-        Mobile: regMobile,
-      });
-      alert("Registration Successful!!! You can now log in to your account ");
-      this.setState({
-        regFullName: "",
-        regEmail: "",
-        regMobile: "",
-        regPassword: "",
-        regConfirmPassword: "",
-        loginEmail: regEmail,
-      });
-      console.log("User Registered:", userItem.data);
-    } catch (error) {
-      console.error("Registration Error:", error);
-    }
-  };
-
-  public render(): React.ReactElement<IReactRegProps> {
-    const { hasTeamsContext } = this.props;
-
-    return (
-      <section
-        className={`${styles.reactReg} ${hasTeamsContext ? styles.teams : ""}`}
-      >
-        {this.state.isLoading && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              backgroundColor: "rgba(0, 0, 0, 0.5)", // Adjust opacity as needed
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 9999, // Ensure the loader is on top
-            }}
-          >
-            <ReactLoading type="spin" color="black" height={50} width={50} />
-          </div>
-        )}
-        {this.state.isLoggedIn ? (
-          <Dashboard
-            LoggedInUserEmail={{
-              loginEmail: this.state.loginEmail,
-            }}
-          />
-        ) : (
-          <Stack horizontal tokens={{ childrenGap: 20 }}>
-            <Stack style={{ width: 300 }}>
-              <h2>Login</h2>
-              <TextField
-                label="Username"
-                value={this.state.loginEmail}
-                onChange={(_e, newValue) =>
-                  this.setState({ loginEmail: newValue || "" })
-                }
-              />
-              <TextField
-                type="password"
-                label="Password"
-                value={this.state.loginPassword}
-                onChange={(e, newValue) =>
-                  this.setState({ loginPassword: newValue || "" })
-                }
-              />
-              <PrimaryButton text="Login" onClick={this.handleLogin} />
-            </Stack>
-
-            <Stack style={{ width: 300 }}>
-              <h2>Register</h2>
-              <TextField
-                label="Full Name"
-                value={this.state.regFullName}
-                onChange={(e, newValue) =>
-                  this.setState({ regFullName: newValue || "" })
-                }
-              />
-              <TextField
-                label="Email Address"
-                value={this.state.regEmail}
-                onChange={(e, newValue) =>
-                  this.setState({ regEmail: newValue || "" })
-                }
-              />
-              <TextField
-                label="Mobile"
-                type="tel"
-                value={this.state.regMobile}
-                onChange={(e, newValue) =>
-                  this.setState({ regMobile: newValue || "" })
-                }
-              />
-              <TextField
-                type="password"
-                label="Password"
-                value={this.state.regPassword}
-                onChange={(e, newValue) =>
-                  this.setState({ regPassword: newValue || "" })
-                }
-              />
-              <TextField
-                type="password"
-                label="Confirm Password"
-                value={this.state.regConfirmPassword}
-                onChange={(e, newValue) =>
-                  this.setState({ regConfirmPassword: newValue || "" })
-                }
-              />
-              <PrimaryButton text="Register" onClick={this.handleRegister} />
-            </Stack>
+  
+  return (
+    <section className={`${styles.reactReg} ${hasTeamsContext ? styles.teams : ""}`}>
+      {isLoading && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0, 0, 0, 0.5)", // Adjust opacity as needed
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999, // Ensure the loader is on top
+          }}
+        >
+          <ReactLoading type="spin" color="black" height={50} width={50} />
+        </div>
+      )}
+      {isLoggedIn ? (
+        <Dashboard LoggedInUserEmail={{ loginEmail }} />
+      ) : (
+        <Stack horizontal tokens={{ childrenGap: 20 }}>
+          <Stack style={{ width: 300 }}>
+            <h2>Login</h2>
+            <TextField
+              label="Username"
+              value={loginEmail}
+              onChange={(_e, newValue) => setLoginEmail(newValue || "")}
+            />
+            <TextField
+              type="password"
+              label="Password"
+              value={loginPassword}
+              onChange={(e, newValue) => setLoginPassword(newValue || "")}
+            />
+            <PrimaryButton text="Login" onClick={handleLoginClick} />
           </Stack>
-        )}
-      </section>
-    );
-  }
+
+          <Stack style={{ width: 300 }}>
+            <h2>Register</h2>
+            <TextField
+              label="Full Name"
+              value={regFullName}
+              onChange={(e, newValue) => setRegFullName(newValue || "")}
+            />
+            <TextField
+              label="Email Address"
+              value={regEmail}
+              onChange={(e, newValue) => setRegEmail(newValue || "")}
+            />
+            <TextField
+              label="Mobile"
+              type="tel"
+              value={regMobile}
+              onChange={(e, newValue) => setRegMobile(newValue || "")}
+            />
+            <TextField
+              type="password"
+              label="Password"
+              value={regPassword}
+              onChange={(e, newValue) => setRegPassword(newValue || "")}
+            />
+            <TextField
+              type="password"
+              label="Confirm Password"
+              value={regConfirmPassword}
+              onChange={(e, newValue) => setRegConfirmPassword(newValue || "")}
+            />
+            <PrimaryButton text="Register" onClick={handleRegisterClick} />
+          </Stack>
+        </Stack>
+      )}
+    </section>
+  );
 }

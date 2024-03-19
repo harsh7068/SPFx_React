@@ -1,9 +1,9 @@
 import * as React from "react";
 import { Persona, PersonaSize, Stack, Text } from "@fluentui/react";
-import { sp } from "@pnp/sp";
 import "@pnp/sp/webs";
 import "@pnp/sp/lists";
 import "@pnp/sp/items";
+import { getLoggedInUserData } from "./CommonRepository";
 
 interface IProfileProps {
   userImageUrl?: string;
@@ -14,24 +14,21 @@ const Profile: React.FC<IProfileProps> = ({ userImageUrl }) => {
   const [userEmail, setUserEmail] = React.useState<string>("");
   const [userMobile, setUserMobile] = React.useState<number>(0);
 
-  const loginEmail = sessionStorage.getItem("LoggedInUserEmail");
-
   React.useEffect(() => {
     getAllDetails();
   }, []);
 
   const getAllDetails = async () => {
-    sp.setup({
-      sp: {
-        baseUrl: "https://pv3l.sharepoint.com/sites/CRUDD",
-      },
-    });
 
     try {
-      const userList = await sp.web.lists
-        .getByTitle("UserMaster")
-        .items.filter(`Email eq '${loginEmail}'`)
-        .get();
+      const loginEmail = sessionStorage.getItem("LoggedInUserEmail");
+      if (!loginEmail) {
+        console.error("Logged in user email not found in session storage.");
+        return;
+      }
+      const sessionData = loginEmail; // Assuming you have session data available
+      const validatingColumn = "Email"; // Column to validate against
+      const userList = await getLoggedInUserData(sessionData, validatingColumn);
 
       if (userList.length > 0) {
         const userDetails = userList[0];

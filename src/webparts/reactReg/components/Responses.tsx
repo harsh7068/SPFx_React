@@ -7,17 +7,12 @@ import {
   gridFilteredSortedRowIdsSelector,
   selectedGridRowsSelector,
 } from "@mui/x-data-grid";
-import { sp } from "@pnp/sp";
-//import Contact from "./Contact";
 import { faDownload } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import "jspdf-autotable";
-import "@pnp/sp/webs";
-import "@pnp/sp/folders";
-import "@pnp/sp/files";
 import { GridColDef } from "@mui/x-data-grid";
 import Contact from "./Contact";
 import ReactLoading from "react-loading";
+import { downloadAttachment, getListData, handleDeleteListItem } from "./CommonRepository";
 
 interface IListItem {
   DistrictId: any;
@@ -71,60 +66,15 @@ const Response: React.FC = () => {
     try {
       setResponseState((prevState) => ({
         ...prevState,
-        loading: true, // Set loading state to true
+        loading: true,
       }));
 
-      sp.setup({
-        sp: {
-          baseUrl: "https://pv3l.sharepoint.com/sites/CRUDD",
-        },
-      });
-
-      const listItems = await sp.web.lists
-        .getByTitle("ContactResponse")
-        .items.expand("Country", "State", "District")
-        .select(
-          "Id",
-          "Title",
-          "Email",
-          "Message",
-          "CountryId",
-          "StateId",
-          "DistrictId",
-          "Country/Title",
-          "District/Title",
-          "State/Title",
-          "PeopleId",
-          "Interests"
-        )
-        .get();
+      const processedData = await getListData();
 
       setResponseState((prevState) => ({
         ...prevState,
         deletingItemId: null,
         loading: false,
-      }));
-
-      const attachmentLibraryUrl = "/sites/CRUDD/Contact";
-      const attachmentsID = await sp.web
-        .getFolderByServerRelativePath(attachmentLibraryUrl)
-        .files.expand("ListItemAllFields") // Expand to include the 'ListDataID'
-        .select("Title", "ServerRelativeUrl", "ListItemAllFields/ListDataID")
-        .get();
-
-      const processedData = listItems.map((item) => {
-        const matchingAttachments = attachmentsID.filter((attachment) => {
-          return attachment.ListItemAllFields.ListDataID === item.Id;
-        });
-
-        return {
-          ...item,
-          Attachments:
-            matchingAttachments.length > 0 ? matchingAttachments : null,
-        };
-      });
-      setResponseState((prevState) => ({
-        ...prevState,
         listData: processedData,
       }));
     } catch (error) {
@@ -135,16 +85,11 @@ const Response: React.FC = () => {
         dataEdited: false,
       }));
     }
-  };
+};
+
 
   const handleDownload = (attachment: any) => {
-    const downloadLink = document.createElement("a");
-    downloadLink.href = `https://pv3l.sharepoint.com${attachment.ServerRelativeUrl}`;
-    downloadLink.download = fileName || "download";
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    console.log("Download:", attachment.Title);
+    downloadAttachment(attachment, fileName);
   };
 
   const getSelectedRowsToExport = ({
@@ -185,25 +130,12 @@ const Response: React.FC = () => {
         deletingItemId: itemId,
       }));
 
-      const attachments =
-        responseState.listData.find((item) => item.Id === itemId)
-          ?.Attachments || [];
+      await handleDeleteListItem(itemId, responseState);
 
-      // Delete attachments from library
-      if (attachments.length > 0) {
-        for (const attachment of attachments) {
-          // Construct the server-relative URL for the attachment
-          const attachmentUrl = attachment.ServerRelativeUrl;
-
-          // Delete the attachment from the library
-          await sp.web.getFileByServerRelativeUrl(attachmentUrl).delete();
-        }
-      }
-      await sp.web.lists
-        .getByTitle("ContactResponse")
-        .items.getById(itemId)
-        .delete();
-
+      setResponseState((prevState) => ({
+        ...prevState,
+        deletingItemId : null
+      }));
       loadListData();
     } catch (error) {
       console.error("Error deleting item:", error);

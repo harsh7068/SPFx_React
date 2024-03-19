@@ -12,20 +12,21 @@ import {
   IBasePickerSuggestionsProps,
 } from "@fluentui/react/lib/Pickers";
 import { IPersonaProps, Persona } from "@fluentui/react/lib/Persona";
-import { sp } from "@pnp/sp";
+//import { sp } from "@pnp/sp";
 import { IOfficeUiFabricPeoplePickerProps } from "./IOfficeUiFabricPeoplePickerProps";
 import ReactLoading from "react-loading";
-import { IItem } from "@pnp/sp/presets/all";
+//import { IItem } from "@pnp/sp/presets/all";
 import "@pnp/sp/webs";
 import "@pnp/sp/folders";
 import "@pnp/sp/files";
 import "@pnp/sp/site-groups";
 import "@pnp/sp/site-users";
+import { getCascadingDropDownOptions, getDropDownOptions, getSiteUsers, handleSubmission } from "./CommonRepository";
 
 interface IContactState {
   id: number;
   selectedPersons: any;
-  name: string;
+  name: string; 
   email: string;
   message: string;
   selectedOptions: string[];
@@ -124,19 +125,7 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
         isLoadingSuggestions: true,
       }));
 
-      const siteGroups = await sp.web.siteGroups();
-      const userSuggestions: IPersonaProps[] = [];
-
-      for (const group of siteGroups) {
-        const groupInfo = await sp.web.siteGroups.getById(group.Id).users();
-        userSuggestions.push(
-          ...groupInfo.map((user) => ({
-            key: user.Id.toString(),
-            text: user.Title,
-            secondaryText: user.Email,
-          }))
-        );
-      }
+      const userSuggestions = await getSiteUsers();
 
       setPeoplePickerState((prevState) => ({
         ...prevState,
@@ -273,12 +262,7 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
 
   const loadCountryOptions = async () => {
     try {
-      const countries = await sp.web.lists.getByTitle("Country").items.get();
-
-      const options = countries.map((country) => ({
-        key: country.Id.toString(),
-        text: country.Title,
-      }));
+      const options = await getDropDownOptions("Country");
 
       setCountryOptions(options);
     } catch (error) {
@@ -293,15 +277,8 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
 
   const fetchStateOptions = async (countryId: string) => {
     try {
-      const states = await sp.web.lists
-        .getByTitle("States")
-        .items.filter(`ConutryID eq ${countryId}`)
-        .get();
 
-      const options = states.map((state) => ({
-        key: state.Id.toString(),
-        text: state.Title,
-      }));
+      const options = await getCascadingDropDownOptions(countryId,"ConutryID","States");
 
       setStateOptions(options);
     } catch (error) {
@@ -311,16 +288,9 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
 
   const fetchDistrictOptions = async (stateId: string) => {
     try {
-      const districts = await sp.web.lists
-        .getByTitle("District")
-        .items.filter(`stateID eq ${stateId}`)
-        .get();
 
-      const options = districts.map((district) => ({
-        key: district.Id.toString(),
-        text: district.Title,
-      }));
-
+      const options = await getCascadingDropDownOptions(stateId,"stateID","District");
+      
       setDistrictOptions(options);
     } catch (error) {
       console.error("Error fetching state district:", error);
@@ -342,176 +312,7 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    try {
-      sp.setup({
-        sp: {
-          baseUrl: "https://pv3l.sharepoint.com/sites/CRUDD",
-        },
-      });
-      setLoading(true);
-
-      const contactList = sp.web.lists.getByTitle("ContactResponse");
-
-      if (contactForm.isEdited && contactForm.id) {
-        // If it's an edit, update the existing item
-        await contactList.items.getById(contactForm.id).update({
-          Title: contactForm.name,
-          Email: contactForm.email,
-          Message: contactForm.message,
-          Interests: contactForm.selectedOptions.join(", "),
-          PeopleId: contactForm.selectedPersons.key,
-          CountryId: contactForm.selectedCountry,
-          StateId: contactForm.selectedState,
-          DistrictId: contactForm.selectedDistrict,
-        });
-
-        const existingID = contactForm.id;
-        console.log("Existing ID:", existingID);
-
-        if (existingID && contactForm.selectedFiles.length > 0) {
-          const listItem: IItem = await contactList.items
-            .getById(existingID)
-            .get();
-
-          if (listItem && Object.keys(listItem).length > 0) {
-            const documentLibraryUrl = "/sites/CRUDD/Contact";
-
-            for (const file of contactForm.selectedFiles) {
-              const now = new Date();
-
-              // Calculate offset for GMT+05:30 (330 minutes)
-              const offsetInMinutes = 330;
-              const offsetInMilliseconds = offsetInMinutes * 60 * 1000;
-
-              // Adjust for GMT+05:30
-              const istDate = new Date(now.getTime() + offsetInMilliseconds);
-
-              // Format timestamp (replace with your preferred format)
-              const formattedTimestamp = istDate
-                .toISOString()
-                .replace(/[:\.]/g, "-");
-              const filename = `${formattedTimestamp}_${file.name}`;
-              console.log("File" + filename);
-
-              try {
-                const fileUploadResult = await sp.web
-                  .getFolderByServerRelativePath(documentLibraryUrl)
-                  .files.add(filename, file, true);
-                console.log("File uploaded: " + filename);
-
-                const uploadedFile = fileUploadResult.file;
-                await (
-                  await uploadedFile.getItem()
-                ).update({
-                  ListDataID: existingID,
-                });
-                alert("Response updated Successfully!!!");
-                console.log("LISTID updated for the file:", filename);
-              } catch (error) {
-                console.error("Error uploading file:", error);
-              }
-            }
-          } else {
-            console.error("Item does not exist in the list.");
-          }
-        } else {
-          console.error("Invalid Response ID or no selected files.");
-        }
-        console.log("Item updated successfully!");
-      } else {
-        // If it's a new submission, add a new item
-        const contactItem = await contactList.items.add({
-          Title: contactForm.name,
-          Email: contactForm.email,
-          Message: contactForm.message,
-          Interests: contactForm.selectedOptions.join(", "),
-          PeopleStringId: {
-            results: contactForm.selectedPersons.map(
-              (person: { key: any }) => person.key
-            ),
-          },
-          CountryId: contactForm.selectedCountry,
-          StateId: contactForm.selectedState,
-          DistrictId: contactForm.selectedDistrict,
-        });
-
-        const newResponseId = contactItem.data.Id;
-        console.log("New Response ID:", newResponseId);
-
-        if (newResponseId && contactForm.selectedFiles.length > 0) {
-          const listItem: IItem = await contactList.items
-            .getById(newResponseId)
-            .get();
-
-          if (listItem && Object.keys(listItem).length > 0) {
-            const documentLibraryUrl = "/sites/CRUDD/Contact";
-
-            for (const file of contactForm.selectedFiles) {
-              const now = new Date();
-
-              // Calculate offset for GMT+05:30 (330 minutes)
-              const offsetInMinutes = 330;
-              const offsetInMilliseconds = offsetInMinutes * 60 * 1000;
-
-              // Adjust for GMT+05:30
-              const istDate = new Date(now.getTime() + offsetInMilliseconds);
-
-              // Format timestamp (replace with your preferred format)
-              const formattedTimestamp = istDate
-                .toISOString()
-                .replace(/[:\.]/g, "-");
-              const filename = `${formattedTimestamp}_${file.name}`;
-              console.log("File" + filename);
-
-              try {
-                const fileUploadResult = await sp.web
-                  .getFolderByServerRelativePath(documentLibraryUrl)
-                  .files.add(filename, file, true);
-                console.log("File uploaded: " + filename);
-
-                const uploadedFile = fileUploadResult.file;
-                await (
-                  await uploadedFile.getItem()
-                ).update({
-                  ListDataID: newResponseId,
-                });
-                alert("Response Submitted Successfully!!!");
-                console.log("LISTID updated for the file:", filename);
-              } catch (error) {
-                console.error("Error uploading file:", error);
-              }
-            }
-          } else {
-            console.error("Item does not exist in the list.");
-          }
-        } else {
-          console.error("Invalid Response ID or no selected files.");
-        }
-      }
-
-      setContactForm({
-        id: 0,
-        name: "",
-        email: "",
-        message: "",
-        selectedOptions: [],
-        selectedFiles: [],
-        selectedPersons: [],
-        isEdited: false,
-        selectedCountry: "",
-        selectedState: "",
-        selectedDistrict: "",
-      });
-      setPeoplePickerState((prevState) => ({
-        ...prevState,
-        selectedPersons: [],
-      }));
-    } catch (error) {
-      alert("Error submitting response!!!" + JSON.stringify(error));
-    } finally {
-      // Reset loading state after submission (whether success or error)
-      setLoading(false);
-    }
+    handleSubmission(contactForm, setLoading, setContactForm, setPeoplePickerState);
   };
 
   return (
