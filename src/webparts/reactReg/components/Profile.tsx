@@ -26,8 +26,8 @@ const Profile: React.FC<IProfileProps> = ({ userImageUrl }) => {
         console.error("Logged in user email not found in session storage.");
         return;
       }
-      const sessionData = loginEmail; // Assuming you have session data available
-      const validatingColumn = "Email"; // Column to validate against
+      const sessionData = loginEmail; 
+      const validatingColumn = "Email";
       const userList = await getLoggedInUserData(sessionData, validatingColumn);
 
       if (userList.length > 0) {

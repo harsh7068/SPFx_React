@@ -2,6 +2,8 @@ import { sp } from "@pnp/sp";
 import "@pnp/sp/webs";
 import "@pnp/sp/folders";
 import "@pnp/sp/files";
+import "@pnp/sp/site-groups";
+import "@pnp/sp/site-users";
 import { IPersonaProps } from "@fluentui/react/lib/Persona";
 
 export const hideRibbon = () => {
@@ -258,7 +260,7 @@ export const getCascadingDropDownOptions = async (
 };
 
 // Define a function to handle submission
-const handleSubmission = async (contactForm: any, setLoading: Function, setContactForm: Function, setPeoplePickerState: Function) => {
+export const handleSubmission = async (contactForm: any, setLoading: Function, setContactForm: Function, setPeoplePickerState: Function) => {
   try {
     await updateOrCreateItem(contactForm, setLoading, setContactForm, setPeoplePickerState);
   } catch (error) {
@@ -375,5 +377,3 @@ const generateFilename = (originalFilename: string) => {
   const formattedTimestamp = istDate.toISOString().replace(/[:\.]/g, "-");
   return `${formattedTimestamp}_${originalFilename}`;
 };
-
-export { handleSubmission };
