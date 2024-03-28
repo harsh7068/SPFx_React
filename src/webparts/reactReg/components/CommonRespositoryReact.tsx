@@ -86,12 +86,17 @@ export const getListData = async (listName: string, query: string) => {
   return result;
 };
 
-export const getLibraryDocument = async (listItems: any[], siteName:string, libraryName:string, query:string) => {
+export const getLibraryDocument = async (
+  listItems: any[],
+  siteName: string,
+  libraryName: string,
+  query: string
+) => {
   const attachmentLibraryUrl = `/sites/${siteName}/${libraryName}`;
-  const attachmentsID = await sp.web
-    .getFolderByServerRelativePath(attachmentLibraryUrl)
-    .files;
-    const results = await attachmentsID.filter(query).get();
+  const attachmentsID = await sp.web.getFolderByServerRelativePath(
+    attachmentLibraryUrl
+  ).files;
+  const results = await attachmentsID.filter(query).get();
 
   return listItems.map((item) => {
     const matchingAttachments = results.filter((attachment) => {
@@ -106,71 +111,129 @@ export const getLibraryDocument = async (listItems: any[], siteName:string, libr
 };
 
 export const downloadAttachment = async (attachment: any, fileName: string) => {
-    const downloadLink = document.createElement("a");
-    downloadLink.href = `https://pv3l.sharepoint.com${attachment.ServerRelativeUrl}`;
-    downloadLink.download = fileName || "download";
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    console.log("Download:", attachment.Title);
-  };
+  const downloadLink = document.createElement("a");
+  downloadLink.href = `https://pv3l.sharepoint.com${attachment.ServerRelativeUrl}`;
+  downloadLink.download = fileName || "download";
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+  console.log("Download:", attachment.Title);
+};
 
-  export const handleDeleteListItem = async (
-    itemId: number,
-    responseState: any,
-    listName : string
-  ) => {
-    console.log(itemId);
-  
-    const attachments =
-      responseState.listData.find((item: any) => item.Id === itemId)
-        ?.Attachments || [];
-  
-    if (attachments.length > 0) {
-      for (const attachment of attachments) {
-        const attachmentUrl = attachment.ServerRelativeUrl;
-  
-        await sp.web.getFileByServerRelativeUrl(attachmentUrl).delete();
-      }
+export const handleDeleteListItem = async (
+  itemId: number,
+  responseState: any,
+  listName: string
+) => {
+  console.log(itemId);
+
+  const attachments =
+    responseState.listData.find((item: any) => item.Id === itemId)
+      ?.Attachments || [];
+
+  if (attachments.length > 0) {
+    for (const attachment of attachments) {
+      const attachmentUrl = attachment.ServerRelativeUrl;
+
+      await sp.web.getFileByServerRelativeUrl(attachmentUrl).delete();
     }
-    await sp.web.lists
-      .getByTitle(listName)
-      .items.getById(itemId)
-      .delete();
-  };
+  }
+  await sp.web.lists.getByTitle(listName).items.getById(itemId).delete();
+};
 
-  export const getBulkData = async (listName : string) => {
-    const response = await sp.web.lists
-      .getByTitle(listName)
-      .items.top(5000)
-      .get();
-    return response;
-  };
-  
-  export const getRestBulkData = async (batchSize: number, skip: number, listName : string) => {
-    const response = await sp.web.lists
-      .getByTitle(listName)
-      .items.top(batchSize)
-      .skip(skip)
-      .get();
-    return response;
-  };
+export const getFirstBulkData = async (listName: string) => {
+  const response = await sp.web.lists
+    .getByTitle(listName)
+    .items.top(5000)
+    .get();
+  return response;
+};
 
-  export const getSiteUsers = async () => {
-    const siteGroups = await sp.web.siteGroups();
-    const userSuggestions: IPersonaProps[] = [];
-  
-    for (const group of siteGroups) {
-      const groupInfo = await sp.web.siteGroups.getById(group.Id).users();
-      userSuggestions.push(
-        ...groupInfo.map((user) => ({
-          key: user.Id.toString(),
-          text: user.Title,
-          secondaryText: user.Email,
-        }))
-      );
+export const getRestBulkData = async (
+  batchSize: number,
+  skip: number,
+  listName: string
+) => {
+  const response = await sp.web.lists
+    .getByTitle(listName)
+    .items.top(batchSize)
+    .skip(skip)
+    .get();
+  return response;
+};
+
+export const getSiteUsers = async () => {
+  const siteGroups = await sp.web.siteGroups();
+  const userSuggestions: IPersonaProps[] = [];
+
+  for (const group of siteGroups) {
+    const groupInfo = await sp.web.siteGroups.getById(group.Id).users();
+    userSuggestions.push(
+      ...groupInfo.map((user) => ({
+        key: user.Id.toString(),
+        text: user.Title,
+        secondaryText: user.Email,
+      }))
+    );
+  }
+  return userSuggestions;
+};
+
+export const SubmitData = async (listName: string, ArrData: any[]) => {
+  const contactList = sp.web.lists.getByTitle(listName);
+  const contactItem = await contactList.items.add({
+    ArrData,
+  });
+
+  const newResponseId = contactItem.data.Id;
+  console.log("New Response ID:", newResponseId);
+  console.log("Item added successfully!");
+
+  return newResponseId;
+};
+
+export const UpdateData = async (
+  listName: string,
+  updateID: number,
+  ArrData: any[]
+) => {
+  const contactList = sp.web.lists.getByTitle(listName);
+  await contactList.items.getById(updateID).update({
+    ArrData,
+  });
+  console.log("Item updated successfully!");
+  return updateID;
+};
+
+export const uploadFiles = async (
+  listItemId: number,
+  selectedFiles: File[]
+) => {
+  const documentLibraryUrl = "/sites/CRUDD/Contact";
+
+  for (const file of selectedFiles) {
+    try {
+      const filename = generateFilename(file.name);
+
+      const fileUploadResult = await sp.web
+        .getFolderByServerRelativePath(documentLibraryUrl)
+        .files.add(filename, file, true);
+      console.log("File uploaded: " + filename);
+
+      const uploadedFile = fileUploadResult.file;
+      await (await uploadedFile.getItem()).update({ ListDataID: listItemId });
+      console.log("LISTID updated for the file:", filename);
+    } catch (error) {
+      console.error("Error uploading file:", error);
     }
-    return userSuggestions;
-  };
+  }
+};
 
-  
+const generateFilename = (originalFilename: string) => {
+  const now = new Date();
+  const offsetInMinutes = 330;
+  const offsetInMilliseconds = offsetInMinutes * 60 * 1000;
+  const istDate = new Date(now.getTime() + offsetInMilliseconds);
+  const formattedTimestamp = istDate.toISOString().replace(/[:\.]/g, "-");
+  return `${formattedTimestamp}_${originalFilename}`;
+};
