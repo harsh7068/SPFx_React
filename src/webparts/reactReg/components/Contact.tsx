@@ -21,12 +21,18 @@ import "@pnp/sp/folders";
 import "@pnp/sp/files";
 import "@pnp/sp/site-groups";
 import "@pnp/sp/site-users";
-import { getCascadingDropDownOptions, getDropDownOptions, getSiteUsers, handleSubmission } from "./CommonRepository";
+import {
+  getCascadingDropDownOptions,
+  getDropDownOptions,
+  getSiteUsers,
+  handleSubmission,
+} from "./CommonRepository";
+import { getListData } from "./CommonRespositoryReact";
 
 interface IContactState {
   id: number;
   selectedPersons: any;
-  name: string; 
+  name: string;
   email: string;
   message: string;
   selectedOptions: string[];
@@ -116,6 +122,20 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
   React.useEffect(() => {
     loadSiteUsers();
     loadCountryOptions();
+  }, []);
+
+  React.useEffect(() => {
+    //const query = "select(Id,Title,Email,Message,CountryId,StateId,DistrictId,Country/Title,District/Title,State/Title,PeopleId,Interests).expand(Country,State,District)";
+    //const query = "expand=Country,State,District&$select=Id,Title,Email,Message,CountryId,StateId,DistrictId,Country%2FTitle,District%2FTitle,State%2FTitle,PeopleId,Interests";
+    const expandQuery = "Country,State,District";
+    const selectQuery = "Id,Title,Email,Message,CountryId,StateId,DistrictId,Country/Title,District/Title,State/Title,PeopleId,Interests";
+    var data = getListData("ContactResponse", expandQuery, selectQuery);
+    var data1 = getListData("UserMaster", "", "");
+    //console.log("DAFDSFHTGTRDFGRTH",getFirstBulkData("UserMaster"));
+
+    console.log("DATATAT", data);
+    console.log("DATATA11111", data1);
+    
   }, []);
 
   const loadSiteUsers = async () => {
@@ -277,8 +297,11 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
 
   const fetchStateOptions = async (countryId: string) => {
     try {
-
-      const options = await getCascadingDropDownOptions(countryId,"ConutryID","States");
+      const options = await getCascadingDropDownOptions(
+        countryId,
+        "ConutryID",
+        "States"
+      );
 
       setStateOptions(options);
     } catch (error) {
@@ -288,9 +311,12 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
 
   const fetchDistrictOptions = async (stateId: string) => {
     try {
+      const options = await getCascadingDropDownOptions(
+        stateId,
+        "stateID",
+        "District"
+      );
 
-      const options = await getCascadingDropDownOptions(stateId,"stateID","District");
-      
       setDistrictOptions(options);
     } catch (error) {
       console.error("Error fetching state district:", error);
@@ -312,7 +338,12 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    handleSubmission(contactForm, setLoading, setContactForm, setPeoplePickerState);
+    handleSubmission(
+      contactForm,
+      setLoading,
+      setContactForm,
+      setPeoplePickerState
+    );
   };
 
   return (
@@ -458,23 +489,28 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
           ))}
           <PrimaryButton type="submit" text="Submit" disabled={loading} />
           {loading && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)', // Adjust opacity as needed
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 9999, // Ensure the loader is on top
-            }}
-          >
-            <ReactLoading type="spin" color="#0078d4" height={50} width={50} />
-          </div>
-        )}
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                backgroundColor: "rgba(0, 0, 0, 0.5)", // Adjust opacity as needed
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 9999, // Ensure the loader is on top
+              }}
+            >
+              <ReactLoading
+                type="spin"
+                color="#0078d4"
+                height={50}
+                width={50}
+              />
+            </div>
+          )}
         </Stack>
       </form>
     </div>

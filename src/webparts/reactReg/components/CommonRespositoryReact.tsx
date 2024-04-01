@@ -29,23 +29,42 @@ const webURL = async () => {
   });
 };
 
-export const getDropDownOptions = async (listName: string, query: string) => {
-  webURL();
-  const data = await sp.web.lists.getByTitle(listName).items;
-  const result = await data.filter(query).get();
+const documentURL = "/sites/CRUDD/Contact";
 
-  const options = result.map((option) => ({
+const tenetName = "pv3l.sharepoint.com";
+
+export const getDropDownOptions = async (
+  listName: string,
+  expandQuery: string,
+  selectQuery: string
+) => {
+  await webURL();
+  const data = await sp.web.lists
+    .getByTitle(listName)
+    .items.expand(expandQuery)
+    .select(selectQuery)
+    .get();
+
+  const options = data.map((option) => ({
     key: option.Id.toString(),
     text: option.Title,
   }));
   return options;
 };
 
-export const search = async (listName: string, query: string) => {
+export const search = async (
+  listName: string,
+  expandQuery: string,
+  selectQuery: string
+) => {
+  await webURL();
   try {
-    const items = await sp.web.lists.getByTitle(listName).items;
-    const result = await items.filter(query).get();
-    return result;
+    const items = await sp.web.lists
+      .getByTitle(listName)
+      .items.expand(expandQuery)
+      .select(selectQuery)
+      .get();
+    return items;
   } catch (error) {
     console.error("Error occurred during search:", error);
     throw error;
@@ -53,6 +72,7 @@ export const search = async (listName: string, query: string) => {
 };
 
 export const fnGetUserProps = async (UserID: number) => {
+  await webURL();
   var Result: any[] = [];
   let data = sp.web.getUserById(UserID).get();
   Result.push(data);
@@ -77,29 +97,37 @@ export const fnGetUserProps = async (UserID: number) => {
 //     }
 // };
 
-export const getListData = async (listName: string, query: string) => {
+export const getListData = async (
+  listName: string,
+  expandQuery: string,
+  selectQuery: string
+) => {
   await webURL();
-
-  const listItems = await sp.web.lists.getByTitle(listName).items;
-  const result = await listItems.filter(query).get();
-
-  return result;
+  const listItemsPromise = await sp.web.lists
+    .getByTitle(listName)
+    .items.expand(expandQuery)
+    .select(selectQuery)
+    .get();
+  return listItemsPromise;
 };
 
 export const getLibraryDocument = async (
   listItems: any[],
   siteName: string,
   libraryName: string,
-  query: string
+  expandQuery: string,
+  selectQuery: string
 ) => {
+  await webURL();
   const attachmentLibraryUrl = `/sites/${siteName}/${libraryName}`;
-  const attachmentsID = await sp.web.getFolderByServerRelativePath(
-    attachmentLibraryUrl
-  ).files;
-  const results = await attachmentsID.filter(query).get();
+  const attachmentsID = await sp.web
+    .getFolderByServerRelativePath(attachmentLibraryUrl)
+    .files.expand(expandQuery)
+    .select(selectQuery)
+    .get();
 
   return listItems.map((item) => {
-    const matchingAttachments = results.filter((attachment) => {
+    const matchingAttachments = attachmentsID.filter((attachment) => {
       return attachment.ListItemAllFields.ListDataID === item.Id;
     });
 
@@ -111,8 +139,9 @@ export const getLibraryDocument = async (
 };
 
 export const downloadAttachment = async (attachment: any, fileName: string) => {
+  await webURL();
   const downloadLink = document.createElement("a");
-  downloadLink.href = `https://pv3l.sharepoint.com${attachment.ServerRelativeUrl}`;
+  downloadLink.href = `https://${tenetName}${attachment.ServerRelativeUrl}`;
   downloadLink.download = fileName || "download";
   document.body.appendChild(downloadLink);
   downloadLink.click();
@@ -126,7 +155,7 @@ export const handleDeleteListItem = async (
   listName: string
 ) => {
   console.log(itemId);
-
+  await webURL();
   const attachments =
     responseState.listData.find((item: any) => item.Id === itemId)
       ?.Attachments || [];
@@ -142,10 +171,13 @@ export const handleDeleteListItem = async (
 };
 
 export const getFirstBulkData = async (listName: string) => {
+  await webURL();
   const response = await sp.web.lists
     .getByTitle(listName)
     .items.top(5000)
     .get();
+  console.log("REPO", response);
+
   return response;
 };
 
@@ -154,6 +186,7 @@ export const getRestBulkData = async (
   skip: number,
   listName: string
 ) => {
+  await webURL();
   const response = await sp.web.lists
     .getByTitle(listName)
     .items.top(batchSize)
@@ -163,6 +196,7 @@ export const getRestBulkData = async (
 };
 
 export const getSiteUsers = async () => {
+  await webURL();
   const siteGroups = await sp.web.siteGroups();
   const userSuggestions: IPersonaProps[] = [];
 
@@ -180,6 +214,7 @@ export const getSiteUsers = async () => {
 };
 
 export const SubmitData = async (listName: string, ArrData: any[]) => {
+  await webURL();
   const contactList = sp.web.lists.getByTitle(listName);
   const contactItem = await contactList.items.add({
     ArrData,
@@ -197,6 +232,7 @@ export const UpdateData = async (
   updateID: number,
   ArrData: any[]
 ) => {
+  await webURL();
   const contactList = sp.web.lists.getByTitle(listName);
   await contactList.items.getById(updateID).update({
     ArrData,
@@ -209,7 +245,8 @@ export const uploadFiles = async (
   listItemId: number,
   selectedFiles: File[]
 ) => {
-  const documentLibraryUrl = "/sites/CRUDD/Contact";
+  await webURL();
+  const documentLibraryUrl = documentURL;
 
   for (const file of selectedFiles) {
     try {
