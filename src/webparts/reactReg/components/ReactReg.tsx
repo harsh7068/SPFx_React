@@ -5,7 +5,8 @@ import { PrimaryButton, TextField, Stack } from "@fluentui/react";
 import { useState } from "react";
 import Dashboard from "./Dashboard";
 import ReactLoading from "react-loading";
-import { handleLogin, handleRegister, hideRibbon } from "./CommonRepository";
+import { handleLogin, handleRegister } from "./CommonRepository";
+import { hideRibbonLocalWorkbench } from "./CommonRespositoryReact";
 
 export default function ReactReg({ hasTeamsContext }: IReactRegProps) {
   const [loginEmail, setLoginEmail] = useState("");
@@ -20,7 +21,7 @@ export default function ReactReg({ hasTeamsContext }: IReactRegProps) {
 
   React.useEffect(() => {
     console.log("Ribbon hide hona");
-    hideRibbon();
+    hideRibbonLocalWorkbench();
   }, []);
 
   const handleLoginClick = async () => {

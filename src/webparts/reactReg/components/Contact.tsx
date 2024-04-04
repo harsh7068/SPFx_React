@@ -22,16 +22,15 @@ import "@pnp/sp/files";
 import "@pnp/sp/site-groups";
 import "@pnp/sp/site-users";
 import {
-  getCascadingDropDownOptions,
   getDropDownOptions,
   getSiteUsers,
-  handleSubmission,
-} from "./CommonRepository";
-import { getListData } from "./CommonRespositoryReact";
+  //handleSubmission,
+} from "./CommonRespositoryReact";
+import { SubmitData, getListData, uploadFiles } from "./CommonRespositoryReact";
 
 interface IContactState {
   id: number;
-  selectedPersons: any;
+  selectedPersons: string[];
   name: string;
   email: string;
   message: string;
@@ -53,7 +52,7 @@ interface IContactProps {
     email: string;
     message: string;
     selectedOptions: string[];
-    selectedPersons: any;
+    selectedPersons: string[];
   };
 }
 
@@ -112,9 +111,9 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
         selectedFiles: [],
         selectedPersons: editData.selectedPersons,
         isEdited: true,
-        selectedCountry: editData.selectedCountry, // Set the country value
-        selectedState: editData.selectedState, // Set the state value
-        selectedDistrict: editData.selectedDistrict, // Set the district value
+        selectedCountry: editData.selectedCountry,
+        selectedState: editData.selectedState, 
+        selectedDistrict: editData.selectedDistrict,
       });
     }
   }, [editData]);
@@ -122,17 +121,16 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
   React.useEffect(() => {
     loadSiteUsers();
     loadCountryOptions();
+    const data =getListData("Contact", "", "", "")
+    console.log("CONTACT", data);
+    
   }, []);
 
   React.useEffect(() => {
-    //const query = "select(Id,Title,Email,Message,CountryId,StateId,DistrictId,Country/Title,District/Title,State/Title,PeopleId,Interests).expand(Country,State,District)";
-    //const query = "expand=Country,State,District&$select=Id,Title,Email,Message,CountryId,StateId,DistrictId,Country%2FTitle,District%2FTitle,State%2FTitle,PeopleId,Interests";
-    const expandQuery = "Country,State,District";
-    const selectQuery = "Id,Title,Email,Message,CountryId,StateId,DistrictId,Country/Title,District/Title,State/Title,PeopleId,Interests";
-    var data = getListData("ContactResponse", expandQuery, selectQuery);
-    var data1 = getListData("UserMaster", "", "");
-    //console.log("DAFDSFHTGTRDFGRTH",getFirstBulkData("UserMaster"));
-
+    //const expandQuery = "Country,State,District";
+    //const selectQuery = "Id,Title,Email,Message,CountryId,StateId,DistrictId,Country/Title,District/Title,State/Title,PeopleId,Interests";
+    var data = getListData("ContactResponse", "", "", "");
+    var data1 = getListData("UserMaster", "", "", "");
     console.log("DATATAT", data);
     console.log("DATATA11111", data1);
     
@@ -182,7 +180,10 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
         selectedPersons: [...prevState.selectedPersons, selectedItem],
       }));
     }
-    console.log("YCTUVGHBKJN" + selectedItem?.key);
+    else {
+      alert("Not selected!!!");
+    }
+    console.log("YCTUVGHBKJN" + peoplePickerState.selectedPersons.keys);
   };
 
   const onRemoveSelectedPerson = (index: number): void => {
@@ -282,7 +283,7 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
 
   const loadCountryOptions = async () => {
     try {
-      const options = await getDropDownOptions("Country");
+      const options = await getDropDownOptions("Country", "", "", "");
 
       setCountryOptions(options);
     } catch (error) {
@@ -297,12 +298,7 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
 
   const fetchStateOptions = async (countryId: string) => {
     try {
-      const options = await getCascadingDropDownOptions(
-        countryId,
-        "ConutryID",
-        "States"
-      );
-
+      const options = await getDropDownOptions("States", "", "", `ConutryID eq ${countryId}`);
       setStateOptions(options);
     } catch (error) {
       console.error("Error fetching state options:", error);
@@ -311,12 +307,7 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
 
   const fetchDistrictOptions = async (stateId: string) => {
     try {
-      const options = await getCascadingDropDownOptions(
-        stateId,
-        "stateID",
-        "District"
-      );
-
+      const options = await getDropDownOptions("District", "", "", `stateID eq ${stateId}`);
       setDistrictOptions(options);
     } catch (error) {
       console.error("Error fetching state district:", error);
@@ -337,13 +328,49 @@ const Contact: React.FC<IContactProps> = ({ editData }) => {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    handleSubmission(
-      contactForm,
-      setLoading,
-      setContactForm,
-      setPeoplePickerState
+    setLoading(true);
+    const selectedPersonNames = peoplePickerState.selectedPersons.map(
+      (person) => person.text
     );
+    const selectedPersonNamesText = selectedPersonNames.join(", ");
+    const selectedPersonEmail = peoplePickerState.selectedPersons.map((person) => person.secondaryText);
+    const selectedPersonEmailText = selectedPersonEmail.join(";");
+    
+    const data: any = {
+      Title: contactForm.name,
+      Email: contactForm.email,
+      Message: contactForm.message,
+      Interests: contactForm.selectedOptions.join(", "),
+      PeopleStringId: {
+        results: peoplePickerState.selectedPersons.map((person: { key: any }) => person.key),
+      },
+      CountryId: contactForm.selectedCountry,
+      StateId: contactForm.selectedState,
+      DistrictId: contactForm.selectedDistrict,
+      PeopleName : selectedPersonNamesText,
+      PeopleEmail : selectedPersonEmailText
+    };
+
+    const responseID = await SubmitData("ContactResponse", data);
+    await uploadFiles(responseID, contactForm.selectedFiles);
+    setContactForm({
+      id: 0,
+      name: "",
+      email: "",
+      message: "",
+      selectedOptions: [],
+      selectedFiles: [],
+      selectedPersons: [],
+      isEdited: false,
+      selectedCountry: "",
+      selectedState: "",
+      selectedDistrict: "",
+    });
+    // setPeoplePickerState({
+    //   ...prevState(),
+    //   selectedPersons : [],
+    // })
+    setLoading(false);
   };
 
   return (

@@ -1,7 +1,7 @@
 import * as React from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import ReactLoading from "react-loading";
-import { getBulkData, getRestBulkData } from "./CommonRepository";
+import { getFirstBulkData, getRestBulkData } from "./CommonRespositoryReact";
 
 interface IListItem {
   Listing_x0020_Status: string;
@@ -33,7 +33,7 @@ const BulkData: React.FC = () => {
 
   const loadInitialData = async () => {
     try {
-      const initialBatch = await getBulkData();
+      const initialBatch = await getFirstBulkData("BulkData");
       setData(initialBatch);
       setLoading(false);
       loadRemainingData(5000);
@@ -48,7 +48,7 @@ const BulkData: React.FC = () => {
       setLoadingData(true);
       console.time("Data loading time");
       const batchSize = 5000;
-      const batch = await getRestBulkData(batchSize, skip);
+      const batch = await getRestBulkData(batchSize, skip, "BulkData");
 
       if (batch.length > 0) {
         setData((prevData) => [...prevData, ...batch]);

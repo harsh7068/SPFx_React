@@ -7,6 +7,7 @@ import Contact from "./Contact";
 import About from "./About";
 import Profile from "./Profile";
 import BulkData from "./BulkData";
+import LibraryData from "./LibraryData";
 import { Link } from "@fluentui/react/lib/Link";
 import { IStackTokens, Stack, Text } from "@fluentui/react";
 import { FontWeights } from "@fluentui/react/lib/Styling";
@@ -468,6 +469,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
     isProfileClicked: boolean;
     isResponseClicked: boolean;
     isBulkDataClicked: boolean;
+    isLibraryDataClicked: boolean;
   }>({
     isLoggedOut: false,
     isContactClicked: false,
@@ -476,6 +478,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
     isProfileClicked: false,
     isResponseClicked: false,
     isBulkDataClicked: false,
+    isLibraryDataClicked: false,
   });
 
   const user = {
@@ -505,6 +508,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
           isProfileClicked: false,
           isResponseClicked: false,
           isBulkDataClicked: false,
+          isLibraryDataClicked: false,
         })),
     },
     {
@@ -520,6 +524,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
           isProfileClicked: false,
           isResponseClicked: false,
           isBulkDataClicked: false,
+          isLibraryDataClicked: false,
         })),
     },
     {
@@ -535,6 +540,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
           isProfileClicked: false,
           isResponseClicked: false,
           isBulkDataClicked: false,
+          isLibraryDataClicked: false,
         })),
     },
     {
@@ -550,6 +556,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
           isProfileClicked: false,
           isResponseClicked: true,
           isBulkDataClicked: false,
+          isLibraryDataClicked: false,
         })),
     },
     {
@@ -565,6 +572,23 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
           isProfileClicked: false,
           isResponseClicked: false,
           isBulkDataClicked: true,
+          isLibraryDataClicked: false,
+        })),
+    },
+    {
+      key: "LibraryData",
+      text: "Library Data",
+      iconProps: { iconName: "Read" },
+      onClick: () =>
+        setdashboardState((prevState) => ({
+          ...prevState,
+          isContactClicked: false,
+          isAboutClicked: false,
+          ishomeClicked: false,
+          isProfileClicked: false,
+          isResponseClicked: false,
+          isBulkDataClicked: false,
+          isLibraryDataClicked: true,
         })),
     },
   ];
@@ -611,7 +635,6 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
       {dashboardState.isLoggedOut ? (
         <>
           <ReactReg hasTeamsContext={false} />
-          
         </>
       ) : (
         <>
@@ -653,6 +676,8 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
               <Profile />
             ) : dashboardState.isResponseClicked ? (
               <Response />
+            ) : dashboardState.isLibraryDataClicked ? (
+              <LibraryData />
             ) : dashboardState.ishomeClicked ? (
               <>
                 <h1>Home Page</h1>
@@ -802,6 +827,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
                         isLoggedOut: false,
                         isResponseClicked: false,
                         isBulkDataClicked: false,
+                        isLibraryDataClicked:false
                       })
                     }
                   >
@@ -817,6 +843,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
                         isLoggedOut: false,
                         isResponseClicked: false,
                         isBulkDataClicked: false,
+                        isLibraryDataClicked:false
                       })
                     }
                   >
@@ -832,6 +859,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ LoggedInUserEmail }) => {
                         isLoggedOut: false,
                         isResponseClicked: false,
                         isBulkDataClicked: false,
+                        isLibraryDataClicked:false
                       })
                     }
                   >

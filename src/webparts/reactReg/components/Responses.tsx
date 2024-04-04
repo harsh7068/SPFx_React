@@ -12,22 +12,26 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { GridColDef } from "@mui/x-data-grid";
 import Contact from "./Contact";
 import ReactLoading from "react-loading";
-import { downloadAttachment, getListData, handleDeleteListItem } from "./CommonRepository";
+import {
+  downloadAttachment,
+  getLibraryDocument,
+  getListData,
+  handleDeleteListItem,
+} from "./CommonRespositoryReact";
 
 interface IListItem {
+  PeopleStringId: string[];
   DistrictId: any;
   StateId: any;
   CountryId: any;
   District: any;
   State: any;
   Country: any;
-  PeopleId: number;
   Email: string;
   Id: number;
   Title: string;
   Message: string;
   Interests: string;
-  People: string;
   Attachments?: any[];
 }
 
@@ -40,7 +44,7 @@ interface IResponseState {
     email: string;
     message: string;
     selectedOptions: string[];
-    selectedPersons: string;
+    selectedPersons: string[];
     selectedDistrict: string;
     selectedState: string;
     selectedCountry: string;
@@ -68,8 +72,25 @@ const Response: React.FC = () => {
         ...prevState,
         loading: true,
       }));
+      const expandQuery = "Country,State,District";
+      const selectQuery =
+        "Id,Title,Email,Message,CountryId,StateId,DistrictId,Country/Title,District/Title,State/Title,PeopleStringId,Interests,PeopleName,PeopleEmail";
+      var data = await getListData(
+        "ContactResponse",
+        expandQuery,
+        selectQuery,
+        ""
+      );
+      console.log("DATATATATA", data);
 
-      const processedData = await getListData();
+      const processedData = await getLibraryDocument(
+        data,
+        "CRUDD",
+        "Contact",
+        "ListItemAllFields",
+        "Title, ServerRelativeUrl, ListItemAllFields/ListDataID",
+        ""
+      );
 
       setResponseState((prevState) => ({
         ...prevState,
@@ -85,8 +106,7 @@ const Response: React.FC = () => {
         dataEdited: false,
       }));
     }
-};
-
+  };
 
   const handleDownload = (attachment: any) => {
     downloadAttachment(attachment, fileName);
@@ -110,13 +130,11 @@ const Response: React.FC = () => {
     headerName: "Actions",
     width: 150,
     renderCell: (params) => {
-      const rowData: IListItem = params.row as IListItem; // Cast params.row to IListItem type
+      const rowData: IListItem = params.row as IListItem;
       return (
         <div>
           <button onClick={() => handleEdit(rowData)}>Edit</button>{" "}
-          {/* Pass rowData to handleEdit */}
           <button onClick={() => handleDelete(rowData.Id)}>Delete</button>{" "}
-          {/* Access Id property from rowData */}
         </div>
       );
     },
@@ -130,11 +148,11 @@ const Response: React.FC = () => {
         deletingItemId: itemId,
       }));
 
-      await handleDeleteListItem(itemId, responseState);
+      await handleDeleteListItem(itemId, responseState, "ContactResponse");
 
       setResponseState((prevState) => ({
         ...prevState,
-        deletingItemId : null
+        deletingItemId: null,
       }));
       loadListData();
     } catch (error) {
@@ -154,7 +172,7 @@ const Response: React.FC = () => {
         email: row.Email,
         message: row.Message,
         selectedOptions: row.Interests.split(", "),
-        selectedPersons: row.People,
+        selectedPersons: row.PeopleStringId,
         selectedCountry: row.CountryId.toString(),
         selectedState: row.StateId.toString(),
         selectedDistrict: row.DistrictId.toString(),
@@ -205,11 +223,108 @@ const Response: React.FC = () => {
 
   const columns: GridColDef[] = [
     { field: "Id", headerName: "ID", width: 70 },
-    { field: "Title", headerName: "Title", width: 150 },
-    { field: "Email", headerName: "Email", width: 150 },
-    { field: "Message", headerName: "Message", width: 200 },
-    { field: "Interests", headerName: "Interests", width: 150 },
-    { field: "People", headerName: "People", width: 150 },
+    {
+      field: "Title",
+      headerName: "Title",
+      width: 150,
+      renderCell: (params) => (
+        <div
+          style={{
+            whiteSpace: "normal",
+            overflow: "visible",
+            height: "auto",
+            wordBreak: "break-word",
+          }}
+        >
+          {params.value}
+        </div>
+      ),
+    },
+    {
+      field: "Email",
+      headerName: "Email",
+      width: 150,
+      renderCell: (params) => (
+        <div
+          style={{
+            whiteSpace: "normal",
+            overflow: "visible",
+            height: "auto",
+            wordBreak: "break-word",
+          }}
+        >
+          {params.value}
+        </div>
+      ),
+    },
+    {
+      field: "Message",
+      headerName: "Message",
+      width: 200,
+      renderCell: (params) => (
+        <div
+          style={{
+            whiteSpace: "normal",
+            overflow: "visible",
+            height: "auto",
+            wordBreak: "break-word",
+          }}
+        >
+          {params.value}
+        </div>
+      ),
+    },
+    {
+      field: "Interests",
+      headerName: "Interests",
+      width: 150,
+      renderCell: (params) => (
+        <div
+          style={{
+            whiteSpace: "normal",
+            overflow: "visible",
+            height: "auto",
+            wordBreak: "break-word",
+          }}
+        >
+          {params.value}
+        </div>
+      ),
+    },
+    {
+      field: "PeopleName",
+      headerName: "People Name",
+      width: 150,
+      renderCell: (params) => (
+        <div
+          style={{
+            whiteSpace: "normal",
+            overflow: "visible",
+            height: "auto",
+            wordBreak: "break-word",
+          }}
+        >
+          {params.value}
+        </div>
+      ),
+    },
+    {
+      field: "PeopleEmail",
+      headerName: "People Email",
+      width: 200,
+      renderCell: (params) => (
+        <div
+          style={{
+            whiteSpace: "normal",
+            overflow: "visible",
+            height: "auto",
+            wordBreak: "break-word",
+          }}
+        >
+          {params.value}
+        </div>
+      ),
+    },
     {
       field: "Country",
       headerName: "Country",

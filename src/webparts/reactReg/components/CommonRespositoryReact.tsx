@@ -4,20 +4,31 @@ import "@pnp/sp/folders";
 import "@pnp/sp/files";
 import { IPersonaProps } from "@fluentui/react/lib/Persona";
 
-export const hideRibbon = () => {
+export const hideRibbonLocalWorkbench = () => {
   const ribbon = document.getElementById("SuiteNavWrapper");
   const ribbon1 = document.getElementById("workbenchCommandBar");
-  // const ribbon2 = document.getElementById("ms-webpart-chrome-title");
-  // const ribbon3 = document.getElementById("suiteBarDelta");
-  // const ribbon4 = document.getElementById("s4-ribbonrow");
-  // const ribbon5 = document.getElementById("s4-titlerow");
-  // const ribbon6 = document.getElementById("sideNavBox");
   const fullPage = document.getElementById("workbenchPageContent");
 
   if (ribbon && ribbon1 && fullPage) {
     ribbon.style.display = "none";
     ribbon1.style.display = "none";
     fullPage.style.maxWidth = "none";
+  }
+};
+
+export const hideRibbonHostedPage = () => {
+  const ribbon = document.getElementById("ms-webpart-chrome-title");
+  const ribbon1 = document.getElementById("suiteBarDelta");
+  const ribbon2 = document.getElementById("s4-ribbonrow");
+  const ribbon3 = document.getElementById("s4-titlerow");
+  const ribbon4 = document.getElementById("sideNavBox");
+
+  if (ribbon && ribbon1 && ribbon2 && ribbon3 && ribbon4) {
+    ribbon.style.display = "none";
+    ribbon1.style.display = "none";
+    ribbon2.style.maxWidth = "none";
+    ribbon3.style.maxWidth = "none";
+    ribbon4.style.maxWidth = "none";
   }
 };
 
@@ -36,13 +47,15 @@ const tenetName = "pv3l.sharepoint.com";
 export const getDropDownOptions = async (
   listName: string,
   expandQuery: string,
-  selectQuery: string
+  selectQuery: string,
+  filterQuery: string
 ) => {
   await webURL();
   const data = await sp.web.lists
     .getByTitle(listName)
     .items.expand(expandQuery)
     .select(selectQuery)
+    .filter(filterQuery)
     .get();
 
   const options = data.map((option) => ({
@@ -55,7 +68,8 @@ export const getDropDownOptions = async (
 export const search = async (
   listName: string,
   expandQuery: string,
-  selectQuery: string
+  selectQuery: string,
+  filterQuery: string
 ) => {
   await webURL();
   try {
@@ -63,6 +77,7 @@ export const search = async (
       .getByTitle(listName)
       .items.expand(expandQuery)
       .select(selectQuery)
+      .filter(filterQuery)
       .get();
     return items;
   } catch (error) {
@@ -100,13 +115,15 @@ export const fnGetUserProps = async (UserID: number) => {
 export const getListData = async (
   listName: string,
   expandQuery: string,
-  selectQuery: string
+  selectQuery: string,
+  filterQuery: string
 ) => {
   await webURL();
   const listItemsPromise = await sp.web.lists
     .getByTitle(listName)
     .items.expand(expandQuery)
     .select(selectQuery)
+    .filter(filterQuery)
     .get();
   return listItemsPromise;
 };
@@ -116,7 +133,8 @@ export const getLibraryDocument = async (
   siteName: string,
   libraryName: string,
   expandQuery: string,
-  selectQuery: string
+  selectQuery: string,
+  filterQuery: string
 ) => {
   await webURL();
   const attachmentLibraryUrl = `/sites/${siteName}/${libraryName}`;
@@ -124,6 +142,7 @@ export const getLibraryDocument = async (
     .getFolderByServerRelativePath(attachmentLibraryUrl)
     .files.expand(expandQuery)
     .select(selectQuery)
+    .filter(filterQuery)
     .get();
 
   return listItems.map((item) => {
@@ -213,12 +232,12 @@ export const getSiteUsers = async () => {
   return userSuggestions;
 };
 
-export const SubmitData = async (listName: string, ArrData: any[]) => {
+export const SubmitData = async (listName: string, ArrData: any) => {
   await webURL();
   const contactList = sp.web.lists.getByTitle(listName);
-  const contactItem = await contactList.items.add({
+  const contactItem = await contactList.items.add(
     ArrData,
-  });
+  );
 
   const newResponseId = contactItem.data.Id;
   console.log("New Response ID:", newResponseId);
